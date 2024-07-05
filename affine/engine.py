@@ -1,24 +1,41 @@
-from typing import Any, Literal
+from collections import defaultdict
 
-import numpy as np
-from pydantic import BaseModel
-
-Operation = Literal["eq", "lte", "gte"]
+from affine.collection import Collection, Filter, FilterSet
 
 
-class Filter(BaseModel):
-    field: str
-    operation: Operation
-    value: Any
+class InMemoryEngine:
+    def __init__(self):  # maybe add option to the init for ANN algo
+        self.records: dict[str, list[Collection]] = defaultdict(list)
+
+    @staticmethod
+    def apply_filter(filter: Filter, record: Collection) -> bool:
+        field = getattr(record, filter.field)
+        if filter.operation == "eq":
+            return field == filter.value
+        elif filter.operation == "gte":
+            return field >= filter.value
+        elif filter.operation == "lte":
+            return field <= filter.value
+        else:
+            raise ValueError(f"Operation {filter.operation} not supported")
+
+    def query(self, filter_set: FilterSet = None) -> list[Collection]:
+        if len(filter_set) == 0 or filter_set is None:
+            return self.records[filter_set.collection]
+        ret = []
+        for record in self.records[filter_set.collection]:
+            record_match = True
+            for f in filter_set.filters:
+                if not self.apply_filter(f, record):
+                    record_match = False
+                    break
+            if record_match:
+                ret.append(record)
+        return ret
+
+    def insert(self, record: Collection) -> None:
+        self.records[record.__class__.__name__].append(record)
 
 
-class NumPyEngine:
-    def __init__(
-        self, dim: int, name: str = None
-    ):  # maybe add option to the init for ANN algo
-        self.data = np.empty((0, dim))
-
-    def query(
-        self, vector: np.ndarray, top_k: int, filters: list[Filter] = None
-    ):
-        pass
+class LocalStorageEnging:
+    pass
