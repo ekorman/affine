@@ -1,8 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any, Generic, Literal, TypeVar, get_args
 
 import numpy as np
-from pydantic import BaseModel, model_validator
 
 N = TypeVar("N", bound=int)
 
@@ -35,13 +34,15 @@ def get_attribute_name_and_operation_from_key(
     return tuple(s)
 
 
-class Filter(BaseModel):
+@dataclass
+class Filter:
     field: str
     operation: Operation
     value: Any
 
 
-class FilterSet(BaseModel):
+@dataclass
+class FilterSet:
     filters: list[Filter]
     collection: str
 
@@ -49,8 +50,14 @@ class FilterSet(BaseModel):
         return len(self.filters)
 
 
-class Collection(BaseModel):
-    @model_validator(mode="before")
+class MetaCollection(type):
+    def __new__(cls, name, bases, dct):
+        new_class = super().__new__(cls, name, bases, dct)
+        # Apply the dataclass decorator
+        return dataclass(new_class)
+
+
+class Collection(metaclass=MetaCollection):
     def validate_arrays(cls, values):
         # check that any vec types have the specified length
         return values
@@ -65,7 +72,7 @@ class Collection(BaseModel):
                 f"Operation {s[1]} not supported. Supported operations are {get_args(Operation)}"
             )
         field, op = s
-        if field not in cls.model_fields:
+        if field not in [f.name for f in fields(cls)]:
             raise ValueError(f"Field {field} not in {cls.__name__}")
         return Filter(field=field, operation=op, value=v)
 
