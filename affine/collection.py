@@ -1,11 +1,11 @@
 from dataclasses import dataclass, fields
-from typing import Any, Generic, Literal, TypeVar, get_args
+from typing import Any, Generic, Literal, TypeVar, get_args, get_origin
 
 import numpy as np
 
 N = TypeVar("N", bound=int)
 
-Operation = Literal["eq", "lte", "gte"]
+Operation = Literal["eq", "lte", "gte", "topk"]
 
 
 class Vector(Generic[N]):
@@ -13,6 +13,9 @@ class Vector(Generic[N]):
         if isinstance(array, list):
             array = np.array(array)
         self.array = array
+
+    def __len__(self) -> int:
+        return len(self.array)
 
 
 @dataclass
@@ -58,9 +61,14 @@ class MetaCollection(type):
 
 
 class Collection(metaclass=MetaCollection):
-    def validate_arrays(cls, values):
-        # check that any vec types have the specified length
-        return values
+    def __post_init__(self):
+        for field in fields(self):
+            if get_origin(field.type) == Vector:
+                n = field.type.__args__[0]
+                if len(getattr(self, field.name)) != n:
+                    raise ValueError(
+                        f"Expected vector of length {n}, got {len(getattr(self, field.name))}"
+                    )
 
     @classmethod
     def get_filter_from_kwarg(cls, k: str, v: Any) -> Filter:
@@ -80,14 +88,3 @@ class Collection(metaclass=MetaCollection):
     def objects(cls, **kwargs) -> FilterSet:
         filters = [cls.get_filter_from_kwarg(k, v) for k, v in kwargs.items()]
         return FilterSet(filters=filters, collection=cls.__name__)
-
-
-# Example
-# class Person(Collection):
-#     age: int
-#     face_embedding: np.ndarray
-
-
-# Person.query(age__gte=18, face_embedding=TopK(vector=np.array([1, 2, 3]), k=3))
-
-# use a global connection (like mongoengine and others?)
