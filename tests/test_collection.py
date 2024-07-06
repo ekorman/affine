@@ -1,4 +1,5 @@
 import pytest
+
 from affine.collection import Collection, Vector
 
 
