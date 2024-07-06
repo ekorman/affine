@@ -24,19 +24,6 @@ class TopK:
     k: int
 
 
-def get_attribute_name_and_operation_from_key(
-    k: str,
-) -> tuple[str, Operation]:
-    s = k.split("__")
-    if len(s) == 1:
-        s.append("eq")
-    if s[1] not in get_args(Operation):
-        raise ValueError(
-            f"Operation {s[1]} not supported. Supported operations are {get_args(Operation)}"
-        )
-    return tuple(s)
-
-
 @dataclass
 class Filter:
     field: str
