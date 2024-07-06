@@ -8,16 +8,16 @@ class InMemoryEngine:
         self.records: dict[str, list[Collection]] = defaultdict(list)
 
     @staticmethod
-    def apply_filter(filter: Filter, record: Collection) -> bool:
-        field = getattr(record, filter.field)
-        if filter.operation == "eq":
-            return field == filter.value
-        elif filter.operation == "gte":
-            return field >= filter.value
-        elif filter.operation == "lte":
-            return field <= filter.value
+    def apply_filter(filter_: Filter, record: Collection) -> bool:
+        field = getattr(record, filter_.field)
+        if filter_.operation == "eq":
+            return field == filter_.value
+        elif filter_.operation == "gte":
+            return field >= filter_.value
+        elif filter_.operation == "lte":
+            return field <= filter_.value
         else:
-            raise ValueError(f"Operation {filter.operation} not supported")
+            raise ValueError(f"Operation {filter_.operation} not supported")
 
     def query(self, filter_set: FilterSet = None) -> list[Collection]:
         if len(filter_set) == 0 or filter_set is None:
