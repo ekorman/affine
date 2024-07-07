@@ -1,4 +1,4 @@
-from affine.collection import Collection
+from affine.collection import Collection, TopK, Vector
 from affine.engine import InMemoryEngine
 
 
@@ -8,10 +8,10 @@ def test_local_engine():
     class Person(Collection):
         name: str
         age: int
-        # embedding: Vector[2]
+        embedding: Vector[2]
 
-    db.insert(Person(name="John", age=20))
-    db.insert(Person(name="Jane", age=30))
+    db.insert(Person(name="John", age=20, embedding=Vector([3.0, 0.0])))
+    db.insert(Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])))
 
     q1 = db.query(Person.objects())
     assert len(q1) == 2
@@ -36,6 +36,9 @@ def test_local_engine():
     assert len(q6) == 1
     assert q6[0].name == "Jane"
 
-    # q4 = db.query(Person.objects(embedding__topk=TopK(Vector([1, 2]), 3))
+    q7 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 1)))
+    assert len(q7) == 1
+    assert q7[0].name == "Jane"
 
-    # Person.objects(embedding__topk=TopK(Vector([1, 2]), 3))
+    q8 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 2)))
+    assert len(q8) == 2
