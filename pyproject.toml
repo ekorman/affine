@@ -1,10 +1,10 @@
 [project]
-name = "affine"
+name = "affine-vectordb"
 dynamic = ["version"]
 description = ""
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = ["pydantic", "numpy"]
+dependencies = ["numpy"]
 
 [build-system]
 requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
