@@ -1,4 +1,6 @@
-from dataclasses import dataclass, fields
+import json
+from dataclasses import asdict, dataclass, fields
+from json import JSONEncoder
 from typing import Any, Generic, Literal, TypeVar, get_args, get_origin
 
 import numpy as np
@@ -16,6 +18,11 @@ class Vector(Generic[N]):
 
     def __len__(self) -> int:
         return len(self.array)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Vector):
+            return False
+        return np.allclose(self.array, other.array)
 
 
 @dataclass
@@ -41,13 +48,16 @@ class FilterSet:
 
 
 class MetaCollection(type):
+    """This metaclass is used so that subclasses of Collection are automatically decorated with dataclass"""
+
     def __new__(cls, name, bases, dct):
         new_class = super().__new__(cls, name, bases, dct)
-        # Apply the dataclass decorator
         return dataclass(new_class)
 
 
 class Collection(metaclass=MetaCollection):
+    """Base class for a collection of documents. Subclasses should define fields as class attributes (dataclasses style)."""
+
     def __post_init__(self):
         for field in fields(self):
             if get_origin(field.type) == Vector:
@@ -75,3 +85,26 @@ class Collection(metaclass=MetaCollection):
     def objects(cls, **kwargs) -> FilterSet:
         filters = [cls.get_filter_from_kwarg(k, v) for k, v in kwargs.items()]
         return FilterSet(filters=filters, collection=cls.__name__)
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), cls=VectorJSONEncoder)
+
+    @classmethod
+    def from_json(self, json_str: str) -> "Collection":
+        return self(**json.loads(json_str, cls=VectorJSONDecoder))
+
+
+class VectorJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Vector):
+            return obj.array.tolist()
+        return JSONEncoder.default(self, obj)
+
+
+class VectorJSONDecoder(json.JSONDecoder):
+    def decode(self, s, _w=json.decoder.WHITESPACE.match):
+        obj = super().decode(s, _w=_w)
+        for k, v in obj.items():
+            if isinstance(v, list):
+                obj[k] = Vector(v)
+        return obj
