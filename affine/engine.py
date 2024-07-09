@@ -77,12 +77,12 @@ class Engine(ABC):
         pass
 
     @abstractmethod
-    def insert(self, record: Collection) -> None:
+    def insert(self, record: Collection) -> int:
         pass
 
-    # @abstractmethod
-    # def delete(self, record: Collection) -> None:
-    #     pass
+    @abstractmethod
+    def delete(self, collection: type, id_: int) -> None:
+        pass
 
 
 class LocalEngine(Engine):
@@ -111,12 +111,24 @@ class LocalEngine(Engine):
 
         return apply_filters_to_records(filter_set.filters, records)
 
+    def _maybe_save(self):
+        if self.path is not None:
+            self.save(self.path)
+
     def insert(self, record: Collection) -> int:
         record.id = self.collection_id_counter[record.__class__.__name__] + 1
         self.records[record.__class__.__name__].append(record)
         self.collection_id_counter[record.__class__.__name__] = record.id
-
-        if self.path is not None:
-            self.save(self.path)
+        self._maybe_save()
 
         return record.id
+
+    def delete(self, collection: type, id_: int) -> None:
+        for r in self.records[collection.__name__]:
+            if r.id == id_:
+                self.records[collection.__name__].remove(r)
+                self._maybe_save()
+                return
+        raise ValueError(
+            f"Record with id {id_} not found in collection {collection.__name__}"
+        )

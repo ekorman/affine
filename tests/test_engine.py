@@ -68,6 +68,15 @@ def test_local_engine(data: list[Collection]):
     assert q9[0].name == "Apple"
     assert q9[0].id == 1
 
+    db.delete(Product, 1)
+    assert db.query(Product.objects()) == []
+
+    with pytest.raises(ValueError) as exc_info:
+        db.delete(Product, 1)
+    assert "Record with id 1 not found in collection Product" in str(
+        exc_info.value
+    )
+
 
 def test_local_engine_save_load(data: list[Collection], tmp_path):
     db = LocalEngine()
