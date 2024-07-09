@@ -1,17 +1,26 @@
+import pytest
+
 from affine.collection import Collection, TopK, Vector
-from affine.engine import InMemoryEngine
+from affine.engine import InMemoryEngine, LocalStorageEngine
 
 
-def test_local_engine():
-    db = InMemoryEngine()
+class Person(Collection):
+    name: str
+    age: int
+    embedding: Vector[2]
 
-    class Person(Collection):
-        name: str
-        age: int
-        embedding: Vector[2]
 
-    db.insert(Person(name="John", age=20, embedding=Vector([3.0, 0.0])))
-    db.insert(Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])))
+@pytest.fixture
+def data() -> list[Person]:
+    return [
+        Person(name="John", age=20, embedding=Vector([3.0, 0.0])),
+        Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])),
+    ]
+
+
+def _test_local_engine(data: list[Person], db):
+    for person in data:
+        db.insert(person)
 
     q1 = db.query(Person.objects())
     assert len(q1) == 2
@@ -42,3 +51,11 @@ def test_local_engine():
 
     q8 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 2)))
     assert len(q8) == 2
+
+
+def test_local_in_memory_engine(data: list[Person]):
+    _test_local_engine(data, InMemoryEngine())
+
+
+def test_local_storage_engine(data: list[Person], tmp_path):
+    _test_local_engine(data, LocalStorageEngine(tmp_path))
