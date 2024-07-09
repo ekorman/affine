@@ -1,6 +1,4 @@
-import json
-from dataclasses import asdict, dataclass, fields
-from json import JSONEncoder
+from dataclasses import dataclass, fields
 from typing import Any, Generic, Literal, TypeVar, get_args, get_origin
 
 import numpy as np
@@ -66,6 +64,7 @@ class Collection(metaclass=MetaCollection):
                     raise ValueError(
                         f"Expected vector of length {n}, got {len(getattr(self, field.name))}"
                     )
+        self.id = None
 
     @classmethod
     def get_filter_from_kwarg(cls, k: str, v: Any) -> Filter:
@@ -85,26 +84,3 @@ class Collection(metaclass=MetaCollection):
     def objects(cls, **kwargs) -> FilterSet:
         filters = [cls.get_filter_from_kwarg(k, v) for k, v in kwargs.items()]
         return FilterSet(filters=filters, collection=cls.__name__)
-
-    def to_json(self) -> str:
-        return json.dumps(asdict(self), cls=VectorJSONEncoder)
-
-    @classmethod
-    def from_json(self, json_str: str) -> "Collection":
-        return self(**json.loads(json_str, cls=VectorJSONDecoder))
-
-
-class VectorJSONEncoder(JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Vector):
-            return obj.array.tolist()
-        return JSONEncoder.default(self, obj)
-
-
-class VectorJSONDecoder(json.JSONDecoder):
-    def decode(self, s, _w=json.decoder.WHITESPACE.match):
-        obj = super().decode(s, _w=_w)
-        for k, v in obj.items():
-            if isinstance(v, list):
-                obj[k] = Vector(v)
-        return obj

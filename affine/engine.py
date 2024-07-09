@@ -94,6 +94,10 @@ class LocalEngine(Engine):
         if self.path is not None:
             with open(self.path, "rb") as f:
                 self.records = pickle.load(f)
+        self.collection_id_counter: dict[str, int] = defaultdict(int)
+        for k, recs in self.records.items():
+            if len(recs) > 0:
+                self.collection_id_counter[k] = max([r.id for r in recs])
 
     def save(self, path: str | Path) -> None:
         path = path or self.path
@@ -107,7 +111,12 @@ class LocalEngine(Engine):
 
         return apply_filters_to_records(filter_set.filters, records)
 
-    def insert(self, record: Collection) -> None:
+    def insert(self, record: Collection) -> int:
+        record.id = self.collection_id_counter[record.__class__.__name__] + 1
         self.records[record.__class__.__name__].append(record)
+        self.collection_id_counter[record.__class__.__name__] = record.id
+
         if self.path is not None:
             self.save(self.path)
+
+        return record.id
