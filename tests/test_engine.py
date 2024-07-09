@@ -10,11 +10,17 @@ class Person(Collection):
     embedding: Vector[2]
 
 
+class Product(Collection):
+    name: str
+    price: float
+
+
 @pytest.fixture
-def data() -> list[Person]:
+def data() -> list[Person | Product]:
     return [
         Person(name="John", age=20, embedding=Vector([3.0, 0.0])),
         Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])),
+        Product(name="Apple", price=1.0),
     ]
 
 
@@ -52,10 +58,26 @@ def _test_local_engine(data: list[Person], db):
     q8 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 2)))
     assert len(q8) == 2
 
+    q9 = db.query(Product.objects())
+    assert len(q9) == 1
+    assert q9[0].name == "Apple"
+
 
 def test_local_in_memory_engine(data: list[Person]):
     _test_local_engine(data, InMemoryEngine())
 
 
 def test_local_storage_engine(data: list[Person], tmp_path):
-    _test_local_engine(data, LocalStorageEngine(tmp_path))
+    db = LocalStorageEngine(tmp_path)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        db.query(Person.objects())
+    assert "Collection Person does not exist." in str(exc_info.value)
+
+    _test_local_engine(data, db)
+
+    assert len(db.file_paths) == 2
+    assert set([f.name for f in tmp_path.iterdir()]) == {
+        "Person.jsonl",
+        "Product.jsonl",
+    }

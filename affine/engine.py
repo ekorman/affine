@@ -103,7 +103,7 @@ class InMemoryEngine(Engine):
 class LocalStorageEngine(Engine):
     def __init__(self, base_dir: str | PosixPath) -> None:
         self.base_dir = Path(base_dir)
-        self._file_paths: dict[str, TextIOWrapper] = {}
+        self.file_paths: dict[str, TextIOWrapper] = {}
         self._collection_name_to_class: dict[str, type] = {}
 
     def _get_path_to_col(self, col_name: str) -> Path:
@@ -122,10 +122,10 @@ class LocalStorageEngine(Engine):
     def insert(self, record: Collection) -> None:
         col_name = record.__class__.__name__
         self._collection_name_to_class[col_name] = record.__class__
-        if col_name not in self._file_paths:
-            self._file_paths[col_name] = self._get_path_to_col(col_name)
+        if col_name not in self.file_paths:
+            self.file_paths[col_name] = self._get_path_to_col(col_name)
 
-        with open(self._file_paths[col_name], "a") as f:
+        with open(self.file_paths[col_name], "a") as f:
             f.write(record.to_json() + "\n")
 
     def query(self, filter_set: FilterSet) -> list[Collection]:
