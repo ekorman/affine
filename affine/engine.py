@@ -1,7 +1,7 @@
+import pickle
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from io import TextIOWrapper
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import numpy as np
 
@@ -85,9 +85,20 @@ class Engine(ABC):
     #     pass
 
 
-class InMemoryEngine(Engine):
-    def __init__(self) -> None:  # maybe add option to the init for ANN algo
+class LocalEngine(Engine):
+    def __init__(
+        self, path: str | Path = None
+    ) -> None:  # maybe add option to the init for ANN algo
+        self.path = path
         self.records: dict[str, list[Collection]] = defaultdict(list)
+        if self.path is not None:
+            with open(self.path, "rb") as f:
+                self.records = pickle.load(f)
+
+    def save(self, path: str | Path) -> None:
+        path = path or self.path
+        with open(path, "wb") as f:
+            pickle.dump(self.records, f)
 
     def query(self, filter_set: FilterSet = None) -> list[Collection]:
         records = self.records[filter_set.collection]
@@ -98,39 +109,5 @@ class InMemoryEngine(Engine):
 
     def insert(self, record: Collection) -> None:
         self.records[record.__class__.__name__].append(record)
-
-
-class LocalStorageEngine(Engine):
-    def __init__(self, base_dir: str | PosixPath) -> None:
-        self.base_dir = Path(base_dir)
-        self.file_paths: dict[str, TextIOWrapper] = {}
-        self._collection_name_to_class: dict[str, type] = {}
-
-    def _get_path_to_col(self, col_name: str) -> Path:
-        return self.base_dir / f"{col_name}.jsonl"
-
-    def load_records(self, col_name: str) -> list[Collection]:
-        jsonl_path = self._get_path_to_col(col_name)
-        if not jsonl_path.exists():
-            raise RuntimeError(f"Collection {col_name} does not exist.")
-        col_cls = self._collection_name_to_class.get(col_name)
-        return [
-            col_cls.from_json(line)
-            for line in jsonl_path.read_text().split("\n")[:-1]
-        ]
-
-    def insert(self, record: Collection) -> None:
-        col_name = record.__class__.__name__
-        self._collection_name_to_class[col_name] = record.__class__
-        if col_name not in self.file_paths:
-            self.file_paths[col_name] = self._get_path_to_col(col_name)
-
-        with open(self.file_paths[col_name], "a") as f:
-            f.write(record.to_json() + "\n")
-
-    def query(self, filter_set: FilterSet) -> list[Collection]:
-        records = self.load_records(filter_set.collection)
-        if len(filter_set) == 0 or filter_set is None:
-            return records
-
-        return apply_filters_to_records(filter_set.filters, records)
+        if self.path is not None:
+            self.save(self.path)

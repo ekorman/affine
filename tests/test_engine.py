@@ -1,7 +1,7 @@
 import pytest
 
 from affine.collection import Collection, TopK, Vector
-from affine.engine import InMemoryEngine, LocalStorageEngine
+from affine.engine import LocalEngine
 
 
 class Person(Collection):
@@ -24,7 +24,11 @@ def data() -> list[Person | Product]:
     ]
 
 
-def _test_local_engine(data: list[Person], db):
+def test_local_engine(data: list[Collection]):
+    db = LocalEngine()
+
+    assert len(db.query(Person.objects())) == 0
+
     for person in data:
         db.insert(person)
 
@@ -63,21 +67,20 @@ def _test_local_engine(data: list[Person], db):
     assert q9[0].name == "Apple"
 
 
-def test_local_in_memory_engine(data: list[Person]):
-    _test_local_engine(data, InMemoryEngine())
+def test_local_engine_save_load(data: list[Collection], tmp_path):
+    db = LocalEngine()
 
+    for person in data:
+        db.insert(person)
 
-def test_local_storage_engine(data: list[Person], tmp_path):
-    db = LocalStorageEngine(tmp_path)
+    db.save(tmp_path / "db.affine")
 
-    with pytest.raises(RuntimeError) as exc_info:
-        db.query(Person.objects())
-    assert "Collection Person does not exist." in str(exc_info.value)
+    db2 = LocalEngine(tmp_path / "db.affine")
 
-    _test_local_engine(data, db)
+    q1 = db2.query(Person.objects())
+    assert len(q1) == 2
+    assert set([p.name for p in q1]) == {"John", "Jane"}
 
-    assert len(db.file_paths) == 2
-    assert set([f.name for f in tmp_path.iterdir()]) == {
-        "Person.jsonl",
-        "Product.jsonl",
-    }
+    q2 = db2.query(Product.objects())
+    assert len(q2) == 1
+    assert q2[0].name == "Apple"
