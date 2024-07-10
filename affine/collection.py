@@ -17,6 +17,11 @@ class Vector(Generic[N]):
     def __len__(self) -> int:
         return len(self.array)
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Vector):
+            return False
+        return np.allclose(self.array, other.array)
+
 
 @dataclass
 class TopK:
@@ -41,13 +46,16 @@ class FilterSet:
 
 
 class MetaCollection(type):
+    """This metaclass is used so that subclasses of Collection are automatically decorated with dataclass"""
+
     def __new__(cls, name, bases, dct):
         new_class = super().__new__(cls, name, bases, dct)
-        # Apply the dataclass decorator
         return dataclass(new_class)
 
 
 class Collection(metaclass=MetaCollection):
+    """Base class for a collection of documents. Subclasses should define fields as class attributes (dataclasses style)."""
+
     def __post_init__(self):
         for field in fields(self):
             if get_origin(field.type) == Vector:
@@ -56,6 +64,7 @@ class Collection(metaclass=MetaCollection):
                     raise ValueError(
                         f"Expected vector of length {n}, got {len(getattr(self, field.name))}"
                     )
+        self.id = None
 
     @classmethod
     def get_filter_from_kwarg(cls, k: str, v: Any) -> Filter:
