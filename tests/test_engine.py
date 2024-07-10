@@ -81,6 +81,17 @@ def test_local_engine(data: list[Collection]):
     assert db.insert(Product(name="Banana", price=2.0)) == 2
 
 
+def test_local_engine_persistence(data: list[Collection], tmp_path):
+    db = LocalEngine(tmp_path / "db.affine")
+
+    assert len(db.query(Person.objects())) == 0
+    for rec in data:
+        db.insert(rec)
+
+    db2 = LocalEngine(tmp_path / "db.affine")
+    assert len(db2.query(Person.objects())) == 2
+
+
 def test_local_engine_save_load(data: list[Collection], tmp_path):
     db = LocalEngine()
 
