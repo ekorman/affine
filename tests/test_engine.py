@@ -77,6 +77,9 @@ def test_local_engine(data: list[Collection]):
         exc_info.value
     )
 
+    # next id should be 2
+    assert db.insert(Product(name="Banana", price=2.0)) == 2
+
 
 def test_local_engine_save_load(data: list[Collection], tmp_path):
     db = LocalEngine()

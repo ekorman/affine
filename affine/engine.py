@@ -94,7 +94,9 @@ class LocalEngine(Engine):
         if self.path is not None:
             with open(self.path, "rb") as f:
                 self.records = pickle.load(f)
-        self.collection_id_counter: dict[str, int] = defaultdict(int)
+        self.collection_id_counter: dict[str, int] = defaultdict(
+            int
+        )  # maybe pickle this too?
         for k, recs in self.records.items():
             if len(recs) > 0:
                 self.collection_id_counter[k] = max([r.id for r in recs])
