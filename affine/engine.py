@@ -1,3 +1,4 @@
+import os
 import pickle
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -91,7 +92,7 @@ class LocalEngine(Engine):
     ) -> None:  # maybe add option to the init for ANN algo
         self.path = path
         self.records: dict[str, list[Collection]] = defaultdict(list)
-        if self.path is not None:
+        if self.path is not None and os.path.exists(self.path):
             with open(self.path, "rb") as f:
                 self.records = pickle.load(f)
         self.collection_id_counter: dict[str, int] = defaultdict(
