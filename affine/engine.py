@@ -3,6 +3,7 @@ import pickle
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
+from typing import BinaryIO
 
 import numpy as np
 
@@ -88,24 +89,39 @@ class Engine(ABC):
 
 class LocalEngine(Engine):
     def __init__(
-        self, path: str | Path = None
+        self, fp: str | Path | BinaryIO = None
     ) -> None:  # maybe add option to the init for ANN algo
-        self.path = path
-        self.records: dict[str, list[Collection]] = defaultdict(list)
-        if self.path is not None and os.path.exists(self.path):
-            with open(self.path, "rb") as f:
-                self.records = pickle.load(f)
-        self.collection_id_counter: dict[str, int] = defaultdict(
-            int
-        )  # maybe pickle this too?
+        self.fp = fp
+        self._load_records()
+        # maybe pickle this too?
+        self.collection_id_counter: dict[str, int] = defaultdict(int)
         for k, recs in self.records.items():
             if len(recs) > 0:
                 self.collection_id_counter[k] = max([r.id for r in recs])
 
-    def save(self, path: str | Path) -> None:
-        path = path or self.path
-        with open(path, "wb") as f:
-            pickle.dump(self.records, f)
+    def _load_records(self):
+        self.records: dict[str, list[Collection]] = defaultdict(list)
+        if self.fp is None:
+            return
+
+        if isinstance(self.fp, (Path, str)):
+            if os.path.exists(self.fp):
+                with open(self.fp, "rb") as f:
+                    self.records = pickle.load(f)
+        else:
+            self.fp.seek(0)
+            b = self.fp.read()
+            if len(b) > 0:
+                self.records = pickle.loads(b)
+
+    def save(self, fp: str | Path | BinaryIO = None) -> None:
+        fp = fp or self.fp
+        if isinstance(fp, (str, Path)):
+            with open(fp, "wb") as f:
+                pickle.dump(self.records, f)
+        else:
+            fp.seek(0)
+            pickle.dump(self.records, fp)  # don't close, handle it outside
 
     def query(self, filter_set: FilterSet = None) -> list[Collection]:
         records = self.records[filter_set.collection]
@@ -115,8 +131,8 @@ class LocalEngine(Engine):
         return apply_filters_to_records(filter_set.filters, records)
 
     def _maybe_save(self):
-        if self.path is not None:
-            self.save(self.path)
+        if self.fp is not None:
+            self.save()
 
     def insert(self, record: Collection) -> int:
         record.id = self.collection_id_counter[record.__class__.__name__] + 1

@@ -1,3 +1,5 @@
+import io
+
 import pytest
 
 from affine.collection import Collection, TopK, Vector
@@ -112,3 +114,16 @@ def test_local_engine_save_load(data: list[Collection], tmp_path):
 
     # check that id counter was loaded correctly
     assert db2.insert(Product(name="Banana", price=2.0)) == 2
+
+
+def test_save_load_from_buffer(data: list[Collection]):
+    f = io.BytesIO()
+
+    db = LocalEngine(f)
+
+    for rec in data:
+        db.insert(rec)
+
+    db2 = LocalEngine(f)
+    assert len(db2.query(Person.objects())) == 2
+    assert len(db2.query(Product.objects())) == 1
