@@ -76,7 +76,7 @@ class Collection(metaclass=MetaCollection):
                 f"Operation {s[1]} not supported. Supported operations are {get_args(Operation)}"
             )
         field, op = s
-        if field not in [f.name for f in fields(cls)]:
+        if field not in [f.name for f in fields(cls)] + ["id"]:
             raise ValueError(f"Field {field} not in {cls.__name__}")
         return Filter(field=field, operation=op, value=v)
 

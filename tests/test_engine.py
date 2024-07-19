@@ -54,7 +54,7 @@ def test_local_engine(data: list[Collection]):
     q5 = db.query(Person.objects(age__lte=25, name__eq="Jane"))
     assert len(q5) == 0
 
-    q6 = db.query(Person.objects(age__gte=25, name__eq="Jane"))
+    q6 = db.query(Person.objects(age__gte=25, name="Jane"))
     assert len(q6) == 1
     assert q6[0].name == "Jane"
 
@@ -81,6 +81,11 @@ def test_local_engine(data: list[Collection]):
 
     # next id should be 2
     assert db.insert(Product(name="Banana", price=2.0)) == 2
+
+    # check we can query by idea
+    q10 = db.query(Product.objects(id=2))
+    assert len(q10) == 1
+    assert q10[0].name == "Banana"
 
 
 def test_local_engine_persistence(data: list[Collection], tmp_path):
