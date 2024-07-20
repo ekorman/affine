@@ -88,26 +88,18 @@ def test_local_engine(data: list[Collection]):
     assert q10[0].name == "Banana"
 
 
-def test_local_engine_persistence(data: list[Collection], tmp_path):
-    db = LocalEngine(tmp_path / "db.affine")
-
-    assert len(db.query(Person.objects())) == 0
-    for rec in data:
-        db.insert(rec)
-
-    db2 = LocalEngine(tmp_path / "db.affine")
-    assert len(db2.query(Person.objects())) == 2
-
-
 def test_local_engine_save_load(data: list[Collection], tmp_path):
     db = LocalEngine()
 
     for rec in data:
         db.insert(rec)
 
-    db.save(tmp_path / "db.affine")
+    path = tmp_path / "db.affine"
 
-    db2 = LocalEngine(tmp_path / "db.affine")
+    db.save(path)
+
+    db2 = LocalEngine()
+    db2.load(path)
 
     q1 = db2.query(Person.objects())
     assert len(q1) == 2
@@ -124,11 +116,15 @@ def test_local_engine_save_load(data: list[Collection], tmp_path):
 def test_save_load_from_buffer(data: list[Collection]):
     f = io.BytesIO()
 
-    db = LocalEngine(f)
+    db = LocalEngine()
 
     for rec in data:
         db.insert(rec)
 
-    db2 = LocalEngine(f)
+    db.save(f)
+    f.seek(0)
+
+    db2 = LocalEngine()
+    db2.load(f)
     assert len(db2.query(Person.objects())) == 2
     assert len(db2.query(Product.objects())) == 1

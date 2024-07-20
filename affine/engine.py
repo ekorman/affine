@@ -1,4 +1,3 @@
-import os
 import pickle
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -88,31 +87,25 @@ class Engine(ABC):
 
 
 class LocalEngine(Engine):
-    def __init__(
-        self, fp: str | Path | BinaryIO = None
-    ) -> None:  # maybe add option to the init for ANN algo
-        self.fp = fp
-        self._load_records()
-        # maybe pickle this too?
+    def __init__(self) -> None:  # maybe add option to the init for ANN algo
+        self.records: dict[str, list[Collection]] = defaultdict(list)
+        self.build_collection_id_counter()
+
+    def build_collection_id_counter(self):
+        # maybe pickle this too on save?
         self.collection_id_counter: dict[str, int] = defaultdict(int)
         for k, recs in self.records.items():
             if len(recs) > 0:
                 self.collection_id_counter[k] = max([r.id for r in recs])
 
-    def _load_records(self):
+    def load(self, fp: str | Path | BinaryIO) -> None:
         self.records: dict[str, list[Collection]] = defaultdict(list)
-        if self.fp is None:
-            return
-
-        if isinstance(self.fp, (Path, str)):
-            if os.path.exists(self.fp):
-                with open(self.fp, "rb") as f:
-                    self.records = pickle.load(f)
+        if isinstance(fp, (str, Path)):
+            with open(fp, "rb") as f:
+                self.records = pickle.load(f)
         else:
-            self.fp.seek(0)
-            b = self.fp.read()
-            if len(b) > 0:
-                self.records = pickle.loads(b)
+            self.records = pickle.load(fp)
+        self.build_collection_id_counter()
 
     def save(self, fp: str | Path | BinaryIO = None) -> None:
         fp = fp or self.fp
@@ -130,15 +123,10 @@ class LocalEngine(Engine):
 
         return apply_filters_to_records(filter_set.filters, records)
 
-    def _maybe_save(self):
-        if self.fp is not None:
-            self.save()
-
     def insert(self, record: Collection) -> int:
         record.id = self.collection_id_counter[record.__class__.__name__] + 1
         self.records[record.__class__.__name__].append(record)
         self.collection_id_counter[record.__class__.__name__] = record.id
-        self._maybe_save()
 
         return record.id
 
@@ -146,7 +134,6 @@ class LocalEngine(Engine):
         for r in self.records[collection.__name__]:
             if r.id == id_:
                 self.records[collection.__name__].remove(r)
-                self._maybe_save()
                 return
         raise ValueError(
             f"Record with id {id_} not found in collection {collection.__name__}"
