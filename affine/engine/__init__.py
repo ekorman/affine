@@ -1,3 +1,4 @@
+from .base import Engine
 from .local import LocalEngine
 
 try:
@@ -5,4 +6,4 @@ try:
 except ModuleNotFoundError:
     pass
 
-__all__ = ["LocalEngine", "QdrantEngine"]
+__all__ = ["Engine", "LocalEngine", "QdrantEngine"]
