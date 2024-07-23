@@ -1,12 +1,12 @@
 import pickle
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Type
 
 import numpy as np
 
 from affine.collection import Collection, Filter, FilterSet
+from affine.engine import Engine
 
 
 def apply_filter_to_record(filter_: Filter, record: Collection) -> bool:
@@ -72,20 +72,6 @@ def apply_filters_to_records(
     return records
 
 
-class Engine(ABC):
-    @abstractmethod
-    def query(self, filter_set: FilterSet) -> list[Collection]:
-        pass
-
-    @abstractmethod
-    def insert(self, record: Collection) -> int:
-        pass
-
-    @abstractmethod
-    def delete(self, collection: type, id_: int) -> None:
-        pass
-
-
 class LocalEngine(Engine):
     def __init__(self) -> None:  # maybe add option to the init for ANN algo
         self.records: dict[str, list[Collection]] = defaultdict(list)
@@ -130,6 +116,9 @@ class LocalEngine(Engine):
 
         return record.id
 
+    def register_collection(self, collection_class: Type[Collection]) -> None:
+        pass
+
     def delete(self, collection: type, id_: int) -> None:
         for r in self.records[collection.__name__]:
             if r.id == id_:
@@ -138,3 +127,8 @@ class LocalEngine(Engine):
         raise ValueError(
             f"Record with id {id_} not found in collection {collection.__name__}"
         )
+
+    def get_elements_by_ids(
+        self, collection: type, ids: list[int]
+    ) -> list[Collection]:
+        return [r for r in self.records[collection.__name__] if r.id in ids]
