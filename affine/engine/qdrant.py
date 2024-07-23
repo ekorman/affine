@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, List, Optional, Type, Union, get_origin
 
 import numpy as np
@@ -9,10 +10,13 @@ from affine.collection import Collection, Filter, FilterSet, Vector
 from affine.engine import Engine
 
 
+def create_uuid() -> str:
+    return str(uuid.uuid4())
+
+
 class QdrantEngine(Engine):
     def __init__(self, host: str, port: int):
         self.client = QdrantClient(host=host, port=port)
-        self.collection_id_counter = {}
         self.created_collections = set()
         self.collection_classes: Dict[str, Type[Collection]] = {}
 
@@ -22,11 +26,7 @@ class QdrantEngine(Engine):
         self.register_collection(collection_class)
         self._ensure_collection_exists(collection_class)
 
-        if collection_name not in self.collection_id_counter:
-            self.collection_id_counter[collection_name] = 0
-
-        self.collection_id_counter[collection_name] += 1
-        record.id = self.collection_id_counter[collection_name]
+        record.id = create_uuid()
 
         vector_fields = [
             f.name
@@ -42,10 +42,6 @@ class QdrantEngine(Engine):
             vector=vector,
             payload=self._convert_collection_to_payload(record),
         )
-
-        # import pdb
-
-        # pdb.set_trace()
 
         self.client.upsert(collection_name=collection_name, points=[point])
 

@@ -60,7 +60,7 @@ def test_qdrant_engine(db: QdrantEngine, data: list[Collection]):
     q1 = db.query(Person.objects())
     assert len(q1) == 2
     assert set([p.name for p in q1]) == {"John", "Jane"}
-    assert set([p.id for p in q1]) == {1, 2}
+    assert len(set([p.id for p in q1])) == 2
 
     q2 = db.query(Person.objects(name__eq="John"))
     assert len(q2) == 1
@@ -91,19 +91,14 @@ def test_qdrant_engine(db: QdrantEngine, data: list[Collection]):
     q9 = db.query(Product.objects())
     assert len(q9) == 1
     assert q9[0].name == "Apple"
-    assert q9[0].id == 1
 
-    db.delete(Product, 1)
+    db.delete(Product, q9[0].id)
     assert db.query(Product.objects()) == []
 
-    # with pytest.raises(Exception):  # Qdrant might raise a different exception
-    #     db.delete(Product, 1)
-
-    # next id should be 2
-    assert db.insert(Product(name="Banana", price=2.0)) == 2
+    id_ = db.insert(Product(name="Banana", price=2.0))
 
     # check we can query by id
-    assert db.get_element_by_id(Product, 2).name == "Banana"
+    assert db.get_element_by_id(Product, id_).name == "Banana"
 
 
 def test_qdrant_engine_persistence(
@@ -125,9 +120,6 @@ def test_qdrant_engine_persistence(
     q2 = db2.query(Product.objects())
     assert len(q2) == 1
     assert q2[0].name == "Apple"
-
-    # Check that id counter was persisted correctly
-    assert db2.insert(Product(name="Banana", price=2.0)) == 2
 
 
 def test_auto_creation(db: QdrantEngine, qdrant_client: QdrantClient):
