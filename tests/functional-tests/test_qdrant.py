@@ -1,20 +1,11 @@
+from typing import Type
+
 import pytest
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from affine.collection import Collection, TopK, Vector
 from affine.engine import QdrantEngine
-
-
-class Person(Collection):
-    name: str
-    age: int
-    embedding: Vector[2]
-
-
-class Product(Collection):
-    name: str
-    price: float
 
 
 @pytest.fixture(scope="module")
@@ -27,7 +18,7 @@ def qdrant_client():
 
 
 @pytest.fixture(scope="function")
-def db(qdrant_client):
+def db(Person: Type[Collection], Product: Type[Collection], qdrant_client):
     engine = QdrantEngine(host="localhost", port=6333)
     # Register collection classes
     engine.register_collection(Person)
@@ -41,16 +32,12 @@ def db(qdrant_client):
             pass  # Collection might not exist, which is fine
 
 
-@pytest.fixture
-def data():
-    return [
-        Person(name="John", age=20, embedding=Vector([3.0, 0.0])),
-        Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])),
-        Product(name="Apple", price=1.0),
-    ]
-
-
-def test_qdrant_engine(db: QdrantEngine, data: list[Collection]):
+def test_qdrant_engine(
+    Person: Type[Collection],
+    Product: Type[Collection],
+    db: QdrantEngine,
+    data: list[Collection],
+):
     assert len(db.query(Person.objects())) == 0
 
     for rec in data:
@@ -101,7 +88,11 @@ def test_qdrant_engine(db: QdrantEngine, data: list[Collection]):
 
 
 def test_qdrant_engine_persistence(
-    db: QdrantEngine, data: list[Collection], qdrant_client: QdrantClient
+    Person: Type[Collection],
+    Product: Type[Collection],
+    db: QdrantEngine,
+    data: list[Collection],
+    qdrant_client: QdrantClient,
 ):
     # Insert data
     for rec in data:
@@ -121,21 +112,26 @@ def test_qdrant_engine_persistence(
     assert q2[0].name == "Apple"
 
 
-def test_auto_creation(db: QdrantEngine, qdrant_client: QdrantClient):
+def test_auto_creation(
+    Person: Type[Collection],
+    Product: Type[Collection],
+    db: QdrantEngine,
+    qdrant_client: QdrantClient,
+):
     # This should create the 'Person' collection if it doesn't exist
     db.query(Person.objects())
 
     # Verify that the collection was created
     collections = qdrant_client.get_collections().collections
-    assert any(c.name == "Person" for c in collections)
+    assert any(c.name == Person.__name__ for c in collections)
 
     # This should create the 'Product' collection if it doesn't exist
     db.query(Product.objects())
 
     # Verify that both collections exist
     collections = qdrant_client.get_collections().collections
-    assert any(c.name == "Person" for c in collections)
-    assert any(c.name == "Product" for c in collections)
+    assert any(c.name == Person.__name__ for c in collections)
+    assert any(c.name == Product.__name__ for c in collections)
 
 
 def test_unregistered_collection(db: QdrantEngine):

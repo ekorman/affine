@@ -1,4 +1,5 @@
 import io
+from typing import Type
 
 import pytest
 
@@ -6,27 +7,9 @@ from affine.collection import Collection, TopK, Vector
 from affine.engine import LocalEngine
 
 
-class Person(Collection):
-    name: str
-    age: int
-    embedding: Vector[2]
-
-
-class Product(Collection):
-    name: str
-    price: float
-
-
-@pytest.fixture
-def data() -> list[Person | Product]:
-    return [
-        Person(name="John", age=20, embedding=Vector([3.0, 0.0])),
-        Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])),
-        Product(name="Apple", price=1.0),
-    ]
-
-
-def test_local_engine(data: list[Collection]):
+def test_local_engine(
+    Person: Type[Collection], Product: Type[Collection], data: list[Collection]
+):
     db = LocalEngine()
 
     assert len(db.query(Person.objects())) == 0
@@ -90,7 +73,12 @@ def test_local_engine(data: list[Collection]):
     assert db.get_element_by_id(Product, 2).name == "Banana"
 
 
-def test_local_engine_save_load(data: list[Collection], tmp_path):
+def test_local_engine_save_load(
+    Person: Type[Collection],
+    Product: Type[Collection],
+    data: list[Collection],
+    tmp_path,
+):
     db = LocalEngine()
 
     for rec in data:
@@ -115,7 +103,9 @@ def test_local_engine_save_load(data: list[Collection], tmp_path):
     assert db2.insert(Product(name="Banana", price=2.0)) == 2
 
 
-def test_save_load_from_buffer(data: list[Collection]):
+def test_save_load_from_buffer(
+    Person: Type[Collection], Product: Type[Collection], data: list[Collection]
+):
     f = io.BytesIO()
 
     db = LocalEngine()
