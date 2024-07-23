@@ -60,7 +60,9 @@ class Collection(metaclass=MetaCollection):
         for field in fields(self):
             if get_origin(field.type) == Vector:
                 n = field.type.__args__[0]
-                if len(getattr(self, field.name)) != n:
+                attr = getattr(self, field.name)
+                # when returning a query result the vector may not be present
+                if attr is not None and len(getattr(self, field.name)) != n:
                     raise ValueError(
                         f"Expected vector of length {n}, got {len(getattr(self, field.name))}"
                     )

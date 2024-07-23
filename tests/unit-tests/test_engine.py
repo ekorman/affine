@@ -82,10 +82,12 @@ def test_local_engine(data: list[Collection]):
     # next id should be 2
     assert db.insert(Product(name="Banana", price=2.0)) == 2
 
-    # check we can query by idea
+    # check we can query by id
     q10 = db.query(Product.objects(id=2))
     assert len(q10) == 1
     assert q10[0].name == "Banana"
+
+    assert db.get_element_by_id(Product, 2).name == "Banana"
 
 
 def test_local_engine_save_load(data: list[Collection], tmp_path):

@@ -85,6 +85,20 @@ class Engine(ABC):
     def delete(self, collection: type, id_: int) -> None:
         pass
 
+    @abstractmethod
+    def get_elements_by_ids(
+        self, collection: type, ids: list[int]
+    ) -> list[Collection]:
+        pass
+
+    def get_element_by_id(self, collection: type, id_: int) -> Collection:
+        ret = self.get_elements_by_ids(collection, [id_])
+        if len(ret) == 0:
+            raise ValueError(f"No record found with id {id_}")
+        if len(ret) > 1:
+            raise ValueError(f"Multiple records found with id {id_}")
+        return ret[0]
+
 
 class LocalEngine(Engine):
     def __init__(self) -> None:  # maybe add option to the init for ANN algo
@@ -138,3 +152,8 @@ class LocalEngine(Engine):
         raise ValueError(
             f"Record with id {id_} not found in collection {collection.__name__}"
         )
+
+    def get_elements_by_ids(
+        self, collection: type, ids: list[int]
+    ) -> list[Collection]:
+        return [r for r in self.records[collection.__name__] if r.id in ids]

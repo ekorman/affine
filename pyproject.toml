@@ -18,6 +18,7 @@ packages = ["affine"]
 [project.optional-dependencies]
 dev = ["setuptools_scm", "pre-commit"]
 test = ["pytest", "coverage"]
+qdrant = ["qdrant-client"]
 
 [tool.black]
 line-length = 79
