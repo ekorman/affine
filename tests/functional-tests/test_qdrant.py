@@ -3,7 +3,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from affine.collection import Collection, TopK, Vector
-from affine.qdrant import QdrantEngine
+from affine.engine import QdrantEngine
 
 
 class Person(Collection):
