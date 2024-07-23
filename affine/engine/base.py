@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Type
 
 from affine.collection import Collection, FilterSet
 
@@ -20,6 +21,10 @@ class Engine(ABC):
     def get_elements_by_ids(
         self, collection: type, ids: list[int]
     ) -> list[Collection]:
+        pass
+
+    @abstractmethod
+    def register_collection(self, collection_class: Type[Collection]) -> None:
         pass
 
     def get_element_by_id(self, collection: type, id_: int) -> Collection:

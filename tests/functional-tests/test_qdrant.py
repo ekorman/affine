@@ -51,7 +51,6 @@ def data():
 
 
 def test_qdrant_engine(db: QdrantEngine, data: list[Collection]):
-    # This should not raise an exception now
     assert len(db.query(Person.objects())) == 0
 
     for rec in data:

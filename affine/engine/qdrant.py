@@ -82,7 +82,7 @@ class QdrantEngine(Engine):
             if get_origin(f.type) != Vector
         }
 
-    def register_collection(self, collection_class: Type[Collection]):
+    def register_collection(self, collection_class: Type[Collection]) -> None:
         self.collection_classes[collection_class.__name__] = collection_class
 
     def query(self, filter_set: FilterSet) -> List[Collection]:

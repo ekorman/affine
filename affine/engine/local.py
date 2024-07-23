@@ -1,7 +1,7 @@
 import pickle
 from collections import defaultdict
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Type
 
 import numpy as np
 
@@ -115,6 +115,9 @@ class LocalEngine(Engine):
         self.collection_id_counter[record.__class__.__name__] = record.id
 
         return record.id
+
+    def register_collection(self, collection_class: Type[Collection]) -> None:
+        pass
 
     def delete(self, collection: type, id_: int) -> None:
         for r in self.records[collection.__name__]:
