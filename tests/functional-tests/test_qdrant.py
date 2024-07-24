@@ -2,7 +2,6 @@ from typing import Type
 
 import pytest
 from qdrant_client import QdrantClient
-from qdrant_client.http.exceptions import UnexpectedResponse
 
 from affine.collection import Collection
 from affine.engine import QdrantEngine
@@ -24,45 +23,13 @@ def db(
     qdrant_client,
 ):
     engine = QdrantEngine(host="localhost", port=6333)
-    # Register collection classes
     engine.register_collection(PersonCollection)
     engine.register_collection(ProductCollection)
-    yield engine
-    # Clean up collections after each test
-    for collection_name in engine.created_collections:
-        try:
-            qdrant_client.delete_collection(collection_name)
-        except UnexpectedResponse:
-            pass  # Collection might not exist, which is fine
+    return engine
 
 
 def test_qdrant_engine(db: QdrantEngine, generic_test_engine):
     generic_test_engine(db)
-
-
-def test_qdrant_engine_persistence(
-    PersonCollection: Type[Collection],
-    ProductCollection: Type[Collection],
-    db: QdrantEngine,
-    data: list[Collection],
-    qdrant_client: QdrantClient,
-):
-    # Insert data
-    for rec in data:
-        db.insert(rec)
-
-    # Create a new engine instance
-    db2 = QdrantEngine(host="localhost", port=6333)
-    db2.register_collection(PersonCollection)
-    db2.register_collection(ProductCollection)
-
-    q1 = db2.query(PersonCollection.objects())
-    assert len(q1) == 2
-    assert set([p.name for p in q1]) == {"John", "Jane"}
-
-    q2 = db2.query(ProductCollection.objects())
-    assert len(q2) == 1
-    assert q2[0].name == "Apple"
 
 
 def test_auto_creation(

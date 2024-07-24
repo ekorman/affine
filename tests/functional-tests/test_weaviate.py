@@ -39,58 +39,11 @@ def test_weaviate_engine(db: WeaviateEngine, generic_test_engine):
     generic_test_engine(db)
 
 
-# def test_weaviate_engine_persistence(
-#     Person: Type[Collection],
-#     Product: Type[Collection],
-#     db: WeaviateEngine,
-#     data: list[Collection],
-#     weaviate_client,
-# ):
-#     # Insert data
-#     for rec in data:
-#         db.insert(rec)
+def test_unregistered_collection(db: WeaviateEngine):
+    class UnregisteredCollection(Collection):
+        name: str
 
-#     # Create a new engine instance
-#     db2 = WeaviateEngine(host="localhost", port=8080)
-#     db2.register_collection(Person)
-#     db2.register_collection(Product)
-
-#     q1 = db2.query(Person.objects())
-#     assert len(q1) == 2
-#     assert set([p.name for p in q1]) == {"John", "Jane"}
-
-#     q2 = db2.query(Product.objects())
-#     assert len(q2) == 1
-#     assert q2[0].name == "Apple"
-
-
-# def test_auto_creation(
-#     Person: Type[Collection],
-#     Product: Type[Collection],
-#     db: WeaviateEngine,
-#     weaviate_client,
-# ):
-#     # This should create the 'Person' class if it doesn't exist
-#     db.query(Person.objects())
-
-#     # Verify that the class was created
-#     schema = weaviate_client.schema.get()
-#     assert any(c["class"] == "Person" for c in schema["classes"])
-
-#     # This should create the 'Product' class if it doesn't exist
-#     db.query(Product.objects())
-
-#     # Verify that both classes exist
-#     schema = weaviate_client.schema.get()
-#     assert any(c["class"] == "Person" for c in schema["classes"])
-#     assert any(c["class"] == "Product" for c in schema["classes"])
-
-
-# def test_unregistered_collection(db: WeaviateEngine):
-#     class UnregisteredCollection(Collection):
-#         name: str
-
-#     with pytest.raises(
-#         ValueError, match="Collection UnregisteredCollection not registered"
-#     ):
-#         db.query(UnregisteredCollection.objects())
+    with pytest.raises(
+        ValueError, match="Collection UnregisteredCollection not registered"
+    ):
+        db.query(UnregisteredCollection.objects())
