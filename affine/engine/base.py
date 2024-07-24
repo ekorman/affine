@@ -6,6 +6,7 @@ from affine.collection import Collection, FilterSet
 
 class Engine(ABC):
     @abstractmethod
+    # TODO: add `return_vectors` as an argument here
     def query(self, filter_set: FilterSet) -> list[Collection]:
         pass
 

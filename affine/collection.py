@@ -37,6 +37,12 @@ class Filter:
 
 
 @dataclass
+class TopKFilter(Filter):
+    # just used for typing
+    value: TopK
+
+
+@dataclass
 class FilterSet:
     filters: list[Filter]
     collection: str
@@ -86,3 +92,22 @@ class Collection(metaclass=MetaCollection):
     def objects(cls, **kwargs) -> FilterSet:
         filters = [cls.get_filter_from_kwarg(k, v) for k, v in kwargs.items()]
         return FilterSet(filters=filters, collection=cls.__name__)
+
+
+def get_topk_filter_and_non_topk_filters(
+    filters: list[Filter],
+) -> tuple[TopKFilter | None, list[Filter]]:
+    topk_filters = []
+    non_topk_filters = []
+    for f in filters:
+        if f.operation == "topk":
+            topk_filters.append(f)
+        else:
+            non_topk_filters.append(f)
+
+    if len(topk_filters) > 1:
+        raise ValueError(
+            f"Only one topk filter is allowed but got {len(topk_filters)}."
+        )
+    topk_filter = topk_filters[0] if len(topk_filters) == 1 else None
+    return topk_filter, non_topk_filters

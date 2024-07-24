@@ -14,7 +14,7 @@ jobs:
       - run: pip install ".[test]"
       - run: pytest -v tests/unit-tests
 
-  functional-tests:
+  functional-test-qdrant:
     runs-on: ubuntu-latest
     services:
       qdrant:
@@ -28,4 +28,20 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install ".[test, qdrant]"
-      - run: pytest -v tests/functional-tests
+      - run: pytest -v tests/functional-tests/test_qdrant.py
+
+  functional-test-weaviate:
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: cr.weaviate.io/semitechnologies/weaviate
+        ports:
+          - 8080:8080
+          - 50051:50051
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - run: pip install ".[test, weaviate]"
+      - run: pytest -v tests/functional-tests/test_weaviate.py

@@ -5,7 +5,12 @@ from typing import BinaryIO, Type
 
 import numpy as np
 
-from affine.collection import Collection, Filter, FilterSet
+from affine.collection import (
+    Collection,
+    Filter,
+    FilterSet,
+    get_topk_filter_and_non_topk_filters,
+)
 from affine.engine import Engine
 
 
@@ -50,23 +55,13 @@ def apply_filters_to_records(
     filters: list[Filter], records: list[Collection]
 ) -> list[Collection]:
     # split out topk and other filters
-    topk_filters = []
-    non_topk_filters = []
-    for f in filters:
-        if f.operation == "topk":
-            topk_filters.append(f)
-        else:
-            non_topk_filters.append(f)
-
-    if len(topk_filters) > 1:
-        raise ValueError(
-            f"Only one topk filter is allowed but got {len(topk_filters)}."
-        )
+    topk_filter, non_topk_filters = get_topk_filter_and_non_topk_filters(
+        filters
+    )
 
     records = apply_non_topk_filters_to_records(non_topk_filters, records)
 
-    if len(topk_filters) == 1:
-        topk_filter = topk_filters[0]
+    if topk_filter is not None:
         records = apply_topk_filter_to_records(topk_filter, records)
 
     return records
