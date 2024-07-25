@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Type
 
 from affine.collection import Collection, FilterSet
+
+
+@dataclass
+class QueryResponse:
+    document: Collection
+    distance: float | None = None
 
 
 class Engine(ABC):
