@@ -2,6 +2,7 @@ from dataclasses import dataclass, fields
 from typing import Any, Generic, Literal, TypeVar, get_args, get_origin
 
 import numpy as np
+from typing_extensions import dataclass_transform
 
 N = TypeVar("N", bound=int)
 
@@ -59,6 +60,7 @@ class MetaCollection(type):
         return dataclass(new_class)
 
 
+@dataclass_transform()
 class Collection(metaclass=MetaCollection):
     """Base class for a collection of documents. Subclasses should define fields as class attributes (dataclasses style)."""
 
