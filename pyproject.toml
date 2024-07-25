@@ -19,6 +19,7 @@ packages = ["affine"]
 dev = ["setuptools_scm", "pre-commit"]
 test = ["pytest", "coverage"]
 qdrant = ["qdrant-client"]
+weaviate = ["weaviate-client >= 4.0.0"]
 
 [tool.black]
 line-length = 79

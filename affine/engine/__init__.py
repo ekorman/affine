@@ -6,4 +6,9 @@ try:
 except ModuleNotFoundError:
     pass
 
-__all__ = ["Engine", "LocalEngine", "QdrantEngine"]
+try:
+    from .weaviate import WeaviateEngine
+except ModuleNotFoundError:
+    pass
+
+__all__ = ["Engine", "LocalEngine", "QdrantEngine", "WeaviateEngine"]
