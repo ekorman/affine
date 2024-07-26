@@ -1,5 +1,5 @@
 from dataclasses import dataclass, fields
-from typing import Any, Generic, Literal, Type, TypeVar, get_origin
+from typing import Any, Generic, Literal, TypeVar, get_origin
 
 import numpy as np
 from typing_extensions import dataclass_transform
@@ -148,27 +148,6 @@ class Collection(metaclass=MetaCollection):
                         f"Expected vector of length {n}, got {len(getattr(self, field.name))}"
                     )
         self.id = None
-
-
-class QueryObject:
-    def __init__(self, db, collection_class: Type[Collection]):
-        self.db = db
-        self.collection_class = collection_class
-
-    def filter(self, filter_set: FilterSet | Filter) -> list[Collection]:
-        if isinstance(filter_set, Filter):
-            filter_set = FilterSet(
-                filters=[filter_set], collection=filter_set.collection
-            )
-        return self.db._query(filter_set)
-
-    def all(self) -> list[Collection]:
-        return self.db._query(
-            FilterSet(filters=[], collection=self.collection_class.__name__)
-        )
-
-    def get_by_id(self, id_) -> Collection:
-        return self.db.get_element_by_id(self.collection_class, id_)
 
 
 def get_topk_filter_and_non_topk_filters(

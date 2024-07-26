@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Type
 
-from affine.collection import Collection, FilterSet, QueryObject
+from affine.collection import Collection, FilterSet
+from affine.query import QueryObject
 
 
 class Engine(ABC):
