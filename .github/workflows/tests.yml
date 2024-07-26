@@ -44,5 +44,4 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install ".[test, weaviate]"
-      - run: sleep 10
       - run: pytest -v tests/functional-tests/test_weaviate.py
