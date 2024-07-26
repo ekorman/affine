@@ -85,7 +85,7 @@ class QdrantEngine(Engine):
     def register_collection(self, collection_class: Type[Collection]) -> None:
         self.collection_classes[collection_class.__name__] = collection_class
 
-    def query(self, filter_set: FilterSet) -> List[Collection]:
+    def _query(self, filter_set: FilterSet) -> List[Collection]:
         collection_name = filter_set.collection
         collection_class = self.collection_classes.get(collection_name)
         if not collection_class:
@@ -125,13 +125,13 @@ class QdrantEngine(Engine):
             for point in results
         ]
 
-    def delete(self, collection: Type[Collection], id_: int) -> None:
-        collection_name = collection.__name__
-        self.register_collection(collection)
-        self._ensure_collection_exists(collection)
+    def delete(self, record: Collection) -> None:
+        collection_name = record.__class__.__name__
+        self.register_collection(record.__class__)
+        self._ensure_collection_exists(record.__class__)
         self.client.delete(
             collection_name=collection_name,
-            points_selector=models.PointIdsList(points=[id_]),
+            points_selector=models.PointIdsList(points=[record.id]),
         )
 
     def _convert_filters_to_qdrant(

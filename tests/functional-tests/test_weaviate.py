@@ -46,4 +46,4 @@ def test_unregistered_collection(db: WeaviateEngine):
     with pytest.raises(
         ValueError, match="Collection UnregisteredCollection not registered"
     ):
-        db.query(UnregisteredCollection.objects())
+        db.query(UnregisteredCollection).all()

@@ -1,21 +1,24 @@
 from abc import ABC, abstractmethod
 from typing import Type
 
-from affine.collection import Collection, FilterSet
+from affine.collection import Collection, FilterSet, QueryObject
 
 
 class Engine(ABC):
     @abstractmethod
-    # TODO: add `return_vectors` as an argument here
-    def query(self, filter_set: FilterSet) -> list[Collection]:
+    # TODO: add `return_vectors` as an argument here?
+    def _query(self, filter_set: FilterSet) -> list[Collection]:
         pass
+
+    def query(self, collection_class: Type[Collection]) -> QueryObject:
+        return QueryObject(self, collection_class)
 
     @abstractmethod
     def insert(self, record: Collection) -> int:
         pass
 
     @abstractmethod
-    def delete(self, collection: type, id_: int) -> None:
+    def delete(self, record: Collection) -> None:
         pass
 
     @abstractmethod

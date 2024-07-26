@@ -102,7 +102,7 @@ class WeaviateEngine(Engine):
         col = self.client.collections.get(collection_name)
         return col, collection_class
 
-    def query(self, filter_set: FilterSet) -> List[Collection]:
+    def _query(self, filter_set: FilterSet) -> List[Collection]:
         (
             col,
             collection_class,
@@ -134,11 +134,11 @@ class WeaviateEngine(Engine):
             for obj in result
         ]
 
-    def delete(self, collection: Type[Collection], id_: str) -> None:
+    def delete(self, record: Collection) -> None:
         col, _ = self.get_weaviate_collection_and_affine_collection_class(
-            collection.__name__
+            record.__class__.__name__
         )
-        col.data.delete_by_id(id_)
+        col.data.delete_by_id(record.id)
 
     def get_elements_by_ids(
         self, collection: Type[Collection], ids: List[str]

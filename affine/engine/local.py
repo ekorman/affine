@@ -97,7 +97,7 @@ class LocalEngine(Engine):
             fp.seek(0)
             pickle.dump(self.records, fp)  # don't close, handle it outside
 
-    def query(self, filter_set: FilterSet = None) -> list[Collection]:
+    def _query(self, filter_set: FilterSet = None) -> list[Collection]:
         records = self.records[filter_set.collection]
         if len(filter_set) == 0 or filter_set is None:
             return records
@@ -114,13 +114,14 @@ class LocalEngine(Engine):
     def register_collection(self, collection_class: Type[Collection]) -> None:
         pass
 
-    def delete(self, collection: type, id_: int) -> None:
-        for r in self.records[collection.__name__]:
-            if r.id == id_:
-                self.records[collection.__name__].remove(r)
+    def delete(self, record: Collection) -> None:
+        collection_name = record.__class__.__name__
+        for r in self.records[collection_name]:
+            if r.id == record.id:
+                self.records[collection_name].remove(r)
                 return
         raise ValueError(
-            f"Record with id {id_} not found in collection {collection.__name__}"
+            f"Record with id {record.id} not found in collection {collection_name}"
         )
 
     def get_elements_by_ids(
