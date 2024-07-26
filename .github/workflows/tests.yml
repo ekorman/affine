@@ -33,7 +33,7 @@ jobs:
   functional-test-weaviate:
     runs-on: ubuntu-latest
     services:
-      qdrant:
+      weaviate:
         image: cr.weaviate.io/semitechnologies/weaviate
         ports:
           - 8080:8080
