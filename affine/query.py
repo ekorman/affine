@@ -15,7 +15,6 @@ class QueryObject:
         )
         self._similarity = None
 
-    # def filter(self, filter_set: FilterSet | Filter) -> list[Collection]:
     def filter(self, filter_set: FilterSet | Filter) -> "QueryObject":
         if isinstance(filter_set, Filter):
             filter_set = FilterSet(
