@@ -5,12 +5,7 @@ from typing import BinaryIO, Type
 
 import numpy as np
 
-from affine.collection import (
-    Collection,
-    Filter,
-    FilterSet,
-    get_topk_filter_and_non_topk_filters,
-)
+from affine.collection import Collection, Filter, FilterSet, Similarity
 from affine.engine import Engine
 
 
@@ -26,7 +21,7 @@ def apply_filter_to_record(filter_: Filter, record: Collection) -> bool:
         raise ValueError(f"Operation {filter_.operation} not supported")
 
 
-def apply_non_topk_filters_to_records(
+def apply_filters_to_records(
     filters: list[Filter], records: list[Collection]
 ) -> list[Collection]:
     ret = []
@@ -41,30 +36,14 @@ def apply_non_topk_filters_to_records(
     return ret
 
 
-def apply_topk_filter_to_records(
-    topk_filter: Filter, records: list[Collection]
+def filter_by_similarity(
+    similarity: Similarity, limit: int, records: list[Collection]
 ) -> list[Collection]:
-    vectors = np.stack([getattr(r, topk_filter.field).array for r in records])
-    query_vector = topk_filter.value.vector.array
+    vectors = np.stack([getattr(r, similarity.field).array for r in records])
+    query_vector = similarity.get_array()
     distances = np.linalg.norm(vectors - query_vector, axis=1)
-    topk_indices = distances.argsort()[: topk_filter.value.k]
+    topk_indices = distances.argsort()[:limit]
     return [records[i] for i in topk_indices]
-
-
-def apply_filters_to_records(
-    filters: list[Filter], records: list[Collection]
-) -> list[Collection]:
-    # split out topk and other filters
-    topk_filter, non_topk_filters = get_topk_filter_and_non_topk_filters(
-        filters
-    )
-
-    records = apply_non_topk_filters_to_records(non_topk_filters, records)
-
-    if topk_filter is not None:
-        records = apply_topk_filter_to_records(topk_filter, records)
-
-    return records
 
 
 class LocalEngine(Engine):
@@ -97,12 +76,20 @@ class LocalEngine(Engine):
             fp.seek(0)
             pickle.dump(self.records, fp)  # don't close, handle it outside
 
-    def _query(self, filter_set: FilterSet = None) -> list[Collection]:
+    def _query(
+        self,
+        filter_set: FilterSet,
+        similarity: Similarity | None = None,
+        limit: int | None = None,
+    ) -> list[Collection]:
         records = self.records[filter_set.collection]
-        if len(filter_set) == 0 or filter_set is None:
-            return records
+        records = apply_filters_to_records(filter_set.filters, records)
+        if similarity is None:
+            if limit is None:
+                return records
+            return records[:limit]
 
-        return apply_filters_to_records(filter_set.filters, records)
+        return filter_by_similarity(similarity, limit, records)
 
     def insert(self, record: Collection) -> int:
         record.id = self.collection_id_counter[record.__class__.__name__] + 1

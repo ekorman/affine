@@ -24,10 +24,12 @@ class Vector(Generic[N]):
         return np.allclose(self.array, other.array)
 
 
-@dataclass
-class TopK:
-    vector: np.ndarray | list | Vector
-    k: int
+VectorType = Vector | np.ndarray | list
+
+# @dataclass
+# class TopK:
+#     vector: np.ndarray | list | Vector
+#     k: int
 
 
 @dataclass
@@ -42,11 +44,36 @@ class Filter:
             raise ValueError("Filters must be from the same collection")
         return FilterSet(filters=[self, other], collection=self.collection)
 
+    # @property
+    # def is_semantic_search(self) -> bool:
+    #     return self.value
+
 
 @dataclass
-class TopKFilter(Filter):
-    # just used for typing
-    value: TopK
+class Similarity:
+    collection: str
+    field: str
+    value: VectorType
+
+    def get_list(self) -> list[float]:
+        if isinstance(self.value, Vector):
+            return self.value.array.tolist()
+        if isinstance(self.value, np.ndarray):
+            return self.value.tolist()
+        return self.value
+
+    def get_array(self) -> np.ndarray:
+        if isinstance(self.value, Vector):
+            return self.value.array
+        if isinstance(self.value, np.ndarray):
+            return self.value
+        return np.array(self.value)
+
+
+# @dataclass
+# class TopKFilter(Filter):
+#     # just used for typing
+#     value: TopK
 
 
 @dataclass
@@ -70,14 +97,16 @@ class Attribute:
     collection: str
     name: str
 
-    def __eq__(self, value: object) -> Filter:
-        if isinstance(value, TopK):
-            operation = "topk"
-        else:
-            operation = "eq"
+    def __eq__(self, value: object) -> Filter | Similarity:
+        if isinstance(value, VectorType):
+            return Similarity(
+                collection=self.collection,
+                field=self.name,
+                value=value,
+            )
         return Filter(
             field=self.name,
-            operation=operation,
+            operation="eq",
             value=value,
             collection=self.collection,
         )
@@ -150,20 +179,20 @@ class Collection(metaclass=MetaCollection):
         self.id = None
 
 
-def get_topk_filter_and_non_topk_filters(
-    filters: list[Filter],
-) -> tuple[TopKFilter | None, list[Filter]]:
-    topk_filters = []
-    non_topk_filters = []
-    for f in filters:
-        if f.operation == "topk":
-            topk_filters.append(f)
-        else:
-            non_topk_filters.append(f)
+# def get_topk_filter_and_non_topk_filters(
+#     filters: list[Filter],
+# ) -> tuple[TopKFilter | None, list[Filter]]:
+#     topk_filters = []
+#     non_topk_filters = []
+#     for f in filters:
+#         if f.operation == "topk":
+#             topk_filters.append(f)
+#         else:
+#             non_topk_filters.append(f)
 
-    if len(topk_filters) > 1:
-        raise ValueError(
-            f"Only one topk filter is allowed but got {len(topk_filters)}."
-        )
-    topk_filter = topk_filters[0] if len(topk_filters) == 1 else None
-    return topk_filter, non_topk_filters
+#     if len(topk_filters) > 1:
+#         raise ValueError(
+#             f"Only one topk filter is allowed but got {len(topk_filters)}."
+#         )
+#     topk_filter = topk_filters[0] if len(topk_filters) == 1 else None
+#     return topk_filter, non_topk_filters

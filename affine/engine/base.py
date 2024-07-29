@@ -1,14 +1,19 @@
 from abc import ABC, abstractmethod
 from typing import Type
 
-from affine.collection import Collection, FilterSet
+from affine.collection import Collection, FilterSet, Similarity
 from affine.query import QueryObject
 
 
 class Engine(ABC):
     @abstractmethod
     # TODO: add `return_vectors` as an argument here?
-    def _query(self, filter_set: FilterSet) -> list[Collection]:
+    def _query(
+        self,
+        filter_set: FilterSet,
+        similarity: Similarity | None = None,
+        limit: int | None = None,
+    ) -> list[Collection]:
         pass
 
     def query(self, collection_class: Type[Collection]) -> QueryObject:

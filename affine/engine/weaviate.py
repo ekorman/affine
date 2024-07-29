@@ -7,13 +7,7 @@ from weaviate.collections import Collection as WeaviateCollection
 from weaviate.collections.classes.filters import _FilterValue
 from weaviate.collections.classes.internal import Object
 
-from affine.collection import (
-    Collection,
-    Filter,
-    FilterSet,
-    Vector,
-    get_topk_filter_and_non_topk_filters,
-)
+from affine.collection import Collection, Filter, FilterSet, Similarity, Vector
 from affine.engine import Engine
 
 
@@ -102,7 +96,12 @@ class WeaviateEngine(Engine):
         col = self.client.collections.get(collection_name)
         return col, collection_class
 
-    def _query(self, filter_set: FilterSet) -> List[Collection]:
+    def _query(
+        self,
+        filter_set: FilterSet,
+        similarity: Similarity | None = None,
+        limit: int | None = None,
+    ) -> list[Collection]:
         (
             col,
             collection_class,
@@ -110,19 +109,14 @@ class WeaviateEngine(Engine):
             filter_set.collection
         )
 
-        topk_filter, non_topk_filters = get_topk_filter_and_non_topk_filters(
-            filter_set.filters
-        )
-
-        # Add filters
-        where_filter = self._build_where_filter(non_topk_filters)
-        if topk_filter:
+        where_filter = self._build_where_filter(filter_set.filters)
+        if similarity:
             result = col.query.near_vector(
-                topk_filter.value.vector.array.tolist(),
-                target_vector=topk_filter.field,
+                similarity.get_list(),
+                target_vector=similarity.field,
                 filters=where_filter,
                 include_vector=True,
-                limit=topk_filter.value.k,
+                limit=limit,
             ).objects
         else:
             result = col.query.fetch_objects(
