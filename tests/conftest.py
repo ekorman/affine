@@ -1,6 +1,6 @@
 import pytest
 
-from affine.collection import Collection, TopK, Vector
+from affine.collection import Collection, Vector
 from affine.engine import Engine
 
 
@@ -38,51 +38,63 @@ def data():
 
 
 def _test_engine(db: Engine):
-    assert len(db.query(Person.objects())) == 0
+    assert len(db.query(Person).all()) == 0
 
     for rec in _data:
         db.insert(rec)
 
-    q1 = db.query(Person.objects())
+    q1 = db.query(Person).all()
     assert len(q1) == 2
     assert set([p.name for p in q1]) == {"John", "Jane"}
+    # check unique ids
     assert len(set([p.id for p in q1])) == 2
 
-    q2 = db.query(Person.objects(name__eq="John"))
+    q2 = db.query(Person).filter(Person.name == "John").all()
     assert len(q2) == 1
     assert q2[0].name == "John"
 
-    q3 = db.query(Person.objects(age__gte=25))
+    q3 = db.query(Person).filter(Person.age >= 25).all()
     assert len(q3) == 1
     assert q3[0].name == "Jane"
 
-    q4 = db.query(Person.objects(age__lte=25))
+    q4 = db.query(Person).filter(Person.age <= 25).all()
     assert len(q4) == 1
     assert q4[0].name == "John"
 
-    q5 = db.query(Person.objects(age__lte=25, name__eq="Jane"))
+    q5 = (
+        db.query(Person)
+        .filter((Person.age <= 25) & (Person.name == "Jane"))
+        .all()
+    )
     assert len(q5) == 0
 
-    q6 = db.query(Person.objects(age__gte=25, name="Jane"))
+    q6 = (
+        db.query(Person)
+        .filter((Person.age >= 25) & (Person.name == "Jane"))
+        .all()
+    )
     assert len(q6) == 1
     assert q6[0].name == "Jane"
 
-    q7 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 1)))
+    # q7 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 1)))
+    q7 = db.query(Person).similarity(Person.embedding == [1.8, 2.3]).limit(1)
+    # change to .similarity(Person.embedding == [1.8, 2.3])
     assert len(q7) == 1
     assert q7[0].name == "Jane"
 
-    q8 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 2)))
+    q8 = db.query(Person).similarity(Person.embedding == [1.8, 2.3]).all()
     assert len(q8) == 2
 
-    q9 = db.query(Product.objects())
+    q9 = db.query(Product).all()
     assert len(q9) == 1
     assert q9[0].name == "Apple"
 
     # check we can query by id
-    assert db.get_element_by_id(Product, q9[0].id).name == "Apple"
+    assert db.query(Product).get_by_id(q9[0].id).name == "Apple"
 
-    db.delete(Product, q9[0].id)
-    assert db.query(Product.objects()) == []
+    # check we can delete
+    db.delete(q9[0])
+    assert db.query(Product).all() == []
 
 
 @pytest.fixture

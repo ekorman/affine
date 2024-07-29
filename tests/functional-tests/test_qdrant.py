@@ -39,14 +39,14 @@ def test_auto_creation(
     qdrant_client: QdrantClient,
 ):
     # This should create the 'Person' collection if it doesn't exist
-    db.query(PersonCollection.objects())
+    db.query(PersonCollection).all()
 
     # Verify that the collection was created
     collections = qdrant_client.get_collections().collections
     assert any(c.name == PersonCollection.__name__ for c in collections)
 
     # This should create the 'Product' collection if it doesn't exist
-    db.query(ProductCollection.objects())
+    db.query(ProductCollection).all()
 
     # Verify that both collections exist
     collections = qdrant_client.get_collections().collections
@@ -61,4 +61,4 @@ def test_unregistered_collection(db: QdrantEngine):
     with pytest.raises(
         ValueError, match="Collection UnregisteredCollection not registered"
     ):
-        db.query(UnregisteredCollection.objects())
+        db.query(UnregisteredCollection).all()

@@ -28,11 +28,11 @@ def test_local_engine_save_load(
     db2 = LocalEngine()
     db2.load(path)
 
-    q1 = db2.query(PersonCollection.objects())
+    q1 = db2.query(PersonCollection).all()
     assert len(q1) == 2
     assert set([p.name for p in q1]) == {"John", "Jane"}
 
-    q2 = db2.query(ProductCollection.objects())
+    q2 = db2.query(ProductCollection).all()
     assert len(q2) == 1
     assert q2[0].name == "Apple"
 
@@ -57,5 +57,5 @@ def test_save_load_from_buffer(
 
     db2 = LocalEngine()
     db2.load(f)
-    assert len(db2.query(PersonCollection.objects())) == 2
-    assert len(db2.query(ProductCollection.objects())) == 1
+    assert len(db2.query(PersonCollection).all()) == 2
+    assert len(db2.query(ProductCollection).all()) == 1

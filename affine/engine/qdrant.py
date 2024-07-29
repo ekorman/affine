@@ -6,7 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.exceptions import UnexpectedResponse
 
-from affine.collection import Collection, Filter, FilterSet, Vector
+from affine.collection import Collection, Filter, FilterSet, Similarity, Vector
 from affine.engine import Engine
 
 
@@ -85,7 +85,12 @@ class QdrantEngine(Engine):
     def register_collection(self, collection_class: Type[Collection]) -> None:
         self.collection_classes[collection_class.__name__] = collection_class
 
-    def query(self, filter_set: FilterSet) -> List[Collection]:
+    def _query(
+        self,
+        filter_set: FilterSet,
+        similarity: Similarity | None = None,
+        limit: int | None = None,
+    ) -> list[Collection]:
         collection_name = filter_set.collection
         collection_class = self.collection_classes.get(collection_name)
         if not collection_class:
@@ -97,12 +102,8 @@ class QdrantEngine(Engine):
 
         search_params = models.SearchParams(hnsw_ef=128, exact=False)
 
-        topk_filter = next(
-            (f for f in filter_set.filters if f.operation == "topk"), None
-        )
-        if topk_filter:
-            vector = topk_filter.value.vector.array
-            limit = topk_filter.value.k
+        if similarity:
+            vector = similarity.get_list()
             results = self.client.search(
                 collection_name=collection_name,
                 query_vector=vector,
@@ -111,7 +112,6 @@ class QdrantEngine(Engine):
                 search_params=search_params,
             )
         else:
-            limit = 100  # Default limit, adjust as needed
             results = self.client.scroll(
                 collection_name=collection_name,
                 scroll_filter=qdrant_filters,
@@ -125,13 +125,13 @@ class QdrantEngine(Engine):
             for point in results
         ]
 
-    def delete(self, collection: Type[Collection], id_: int) -> None:
-        collection_name = collection.__name__
-        self.register_collection(collection)
-        self._ensure_collection_exists(collection)
+    def delete(self, record: Collection) -> None:
+        collection_name = record.__class__.__name__
+        self.register_collection(record.__class__)
+        self._ensure_collection_exists(record.__class__)
         self.client.delete(
             collection_name=collection_name,
-            points_selector=models.PointIdsList(points=[id_]),
+            points_selector=models.PointIdsList(points=[record.id]),
         )
 
     def _convert_filters_to_qdrant(
@@ -163,9 +163,10 @@ class QdrantEngine(Engine):
                         key=f.field, range=models.Range(lte=f.value)
                     )
                 )
-            elif f.operation == "topk":
-                # topk is handled separately in the query method
-                continue
+            else:
+                raise ValueError(
+                    f"Unsupported filter operation: {f.operation}"
+                )
 
         return (
             models.Filter(must=qdrant_conditions)
