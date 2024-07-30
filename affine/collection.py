@@ -1,15 +1,23 @@
 from dataclasses import dataclass, fields
-from typing import Any, Generic, Literal, TypeVar, get_origin
+from enum import Enum
+from typing import Any, Generic, Literal, Type, TypeVar, get_origin
 
 import numpy as np
 from typing_extensions import dataclass_transform
 
+
+class Metric(str, Enum):
+    COSINE = "cosine"
+    EUCLIDEAN = "euclidean"
+
+
 N = TypeVar("N", bound=int)
+M = TypeVar("M", bound=Metric)
 
 Operation = Literal["eq", "lte", "gte", "topk"]
 
 
-class Vector(Generic[N]):
+class Vector(Generic[N, M]):
     def __init__(self, array: np.ndarray | list):
         if isinstance(array, list):
             array = np.array(array)
@@ -26,11 +34,6 @@ class Vector(Generic[N]):
 
 VectorType = Vector | np.ndarray | list
 
-# @dataclass
-# class TopK:
-#     vector: np.ndarray | list | Vector
-#     k: int
-
 
 @dataclass
 class Filter:
@@ -43,10 +46,6 @@ class Filter:
         if self.collection != other.collection:
             raise ValueError("Filters must be from the same collection")
         return FilterSet(filters=[self, other], collection=self.collection)
-
-    # @property
-    # def is_semantic_search(self) -> bool:
-    #     return self.value
 
 
 @dataclass
@@ -68,12 +67,6 @@ class Similarity:
         if isinstance(self.value, np.ndarray):
             return self.value
         return np.array(self.value)
-
-
-# @dataclass
-# class TopKFilter(Filter):
-#     # just used for typing
-#     value: TopK
 
 
 @dataclass
@@ -152,7 +145,6 @@ class MetaCollection(type):
         return dataclass(new_class)
 
     def __getattribute__(cls, name: str) -> Any:
-        # if cls.__inside_dataclass_creator:
         try:
             if name in super().__getattribute__("__dataclass_fields__"):  # type: ignore
                 return Attribute(name=name, collection=cls.__name__)
@@ -178,21 +170,20 @@ class Collection(metaclass=MetaCollection):
                     )
         self.id = None
 
+    @classmethod
+    def get_vector_fields(
+        cls: Type["Collection"],
+    ) -> list[tuple[str, int, Metric]]:
+        """Get all the vector fields of a collection
 
-# def get_topk_filter_and_non_topk_filters(
-#     filters: list[Filter],
-# ) -> tuple[TopKFilter | None, list[Filter]]:
-#     topk_filters = []
-#     non_topk_filters = []
-#     for f in filters:
-#         if f.operation == "topk":
-#             topk_filters.append(f)
-#         else:
-#             non_topk_filters.append(f)
-
-#     if len(topk_filters) > 1:
-#         raise ValueError(
-#             f"Only one topk filter is allowed but got {len(topk_filters)}."
-#         )
-#     topk_filter = topk_filters[0] if len(topk_filters) == 1 else None
-#     return topk_filter, non_topk_filters
+        Returns
+        -------
+        list[tuple[str, int]]
+            A list of tuples where the first element is the name of the vector field and
+            the second element is its dimension
+        """
+        return [
+            (f.name, f.type.__args__[0], f.type.__args__[1].__forward_arg__)
+            for f in fields(cls)
+            if get_origin(f.type) == Vector
+        ]

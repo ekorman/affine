@@ -1,13 +1,15 @@
 import pytest
 
-from affine.collection import Collection, Vector
+from affine.collection import Collection, Metric, Vector
 from affine.engine import Engine
 
 
 class Person(Collection):
+    __metrics__ = {"embedding": "cosine"}
+
     name: str
     age: int
-    embedding: Vector[2]
+    embedding: Vector[2, Metric.EUCLIDEAN]
 
 
 class Product(Collection):
