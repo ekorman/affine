@@ -20,6 +20,7 @@ dev = ["setuptools_scm", "pre-commit"]
 test = ["pytest", "coverage"]
 qdrant = ["qdrant-client"]
 weaviate = ["weaviate-client >= 4.0.0"]
+pinecone = ["pinecone-client"]
 
 [tool.black]
 line-length = 79
