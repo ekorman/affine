@@ -178,9 +178,10 @@ class Collection(metaclass=MetaCollection):
 
         Returns
         -------
-        list[tuple[str, int]]
-            A list of tuples where the first element is the name of the vector field and
-            the second element is its dimension
+        list[tuple[str, int, Metric]]
+            A list of tuples where the first element is the name of the vector field,
+            the second element is its dimension, and the third is the metric that should
+            be used with it
         """
         return [
             (f.name, f.type.__args__[0], f.type.__args__[1].__forward_arg__)
