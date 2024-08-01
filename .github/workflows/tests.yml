@@ -101,7 +101,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: 7fbb57e6d6a2c8b69617ddf141043b98
-          filename: radops-coverage.json
+          filename: affine-coverage.json
           label: Coverage
           message: ${{ env.total }}%
           minColorRange: 50
