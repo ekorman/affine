@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from affine.collection import Collection, Metric, Vector
@@ -17,7 +18,7 @@ def test_vector_validation():
         pytest.fail(f"Unexpected exception: {e}")
 
 
-def test_vector_fields_method():
+def test_get_vector_fields():
     class C(Collection):
         x: Vector[3, Metric.COSINE]
         y: Vector[2, Metric.EUCLIDEAN]
@@ -46,3 +47,21 @@ def test_collection_equality():
     assert c1 != c4
     assert c1 != c5
     assert c3 != c4
+
+
+def test_vector_normalize():
+    v = Vector([1, 2, -4])
+    normalized = v.normalize()
+
+    assert normalized == Vector(
+        [
+            1 / np.sqrt(1 + 4 + 16),
+            2 / np.sqrt(1 + 4 + 16),
+            -4 / np.sqrt(1 + 4 + 16),
+        ]
+    )
+
+
+def test_vector_repr():
+    v = Vector([1, 2, -4])
+    assert repr(v) == "<Vector: [ 1  2 -4]>"

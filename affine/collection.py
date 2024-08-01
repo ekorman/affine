@@ -31,6 +31,13 @@ class Vector(Generic[N, M]):
             return False
         return np.allclose(self.array, other.array)
 
+    def normalize(self) -> "Vector":
+        """Returns the L2 normalized vector"""
+        return Vector(array=self.array / np.linalg.norm(self.array))
+
+    def __repr__(self) -> str:
+        return f"<Vector: {self.array}>"
+
 
 VectorType = Vector | np.ndarray | list
 

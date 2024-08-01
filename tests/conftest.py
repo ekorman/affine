@@ -92,9 +92,7 @@ def _test_engine(db: Engine):
     assert len(q6) == 1
     assert q6[0].name == "Jane"
 
-    # q7 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 1)))
     q7 = db.query(Person).similarity(Person.embedding == [1.8, 2.3]).limit(1)
-    # change to .similarity(Person.embedding == [1.8, 2.3])
     assert len(q7) == 1
     assert q7[0].name == "Jane"
 
@@ -121,7 +119,13 @@ def _test_engine(db: Engine):
         )
         assert len(q10) == 1
         assert q10[0].embedding == Vector([1.0, 2.0])
-        assert q10[0].other_embedding == Vector([10.7, 0.1, -5.0])
+
+        if db._RETURNS_NORMALIZED_FOR_COSINE:
+            assert (
+                q10[0].other_embedding == Vector([10.7, 0.1, -5.0]).normalize()
+            )
+        else:
+            assert q10[0].other_embedding == Vector([10.7, 0.1, -5.0])
 
 
 @pytest.fixture

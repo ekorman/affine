@@ -6,6 +6,9 @@ from affine.query import QueryObject
 
 
 class Engine(ABC):
+
+    _RETURNS_NORMALIZED_FOR_COSINE = False
+
     @abstractmethod
     # TODO: add `return_vectors` as an argument here?
     def _query(
