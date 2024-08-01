@@ -2,12 +2,24 @@ from typing import Dict, List, Type, get_origin
 
 import weaviate
 from weaviate.classes import query
-from weaviate.classes.config import Configure, DataType, Property
+from weaviate.classes.config import (
+    Configure,
+    DataType,
+    Property,
+    VectorDistances,
+)
 from weaviate.collections import Collection as WeaviateCollection
 from weaviate.collections.classes.filters import _FilterValue
 from weaviate.collections.classes.internal import Object
 
-from affine.collection import Collection, Filter, FilterSet, Similarity, Vector
+from affine.collection import (
+    Collection,
+    Filter,
+    FilterSet,
+    Metric,
+    Similarity,
+    Vector,
+)
 from affine.engine import Engine
 
 
@@ -29,6 +41,12 @@ def weaviate_object_to_collection_object(
 
 
 class WeaviateEngine(Engine):
+
+    weaviate_dists = {
+        Metric.EUCLIDEAN: VectorDistances.L2_SQUARED,
+        Metric.COSINE: VectorDistances.COSINE,
+    }
+
     def __init__(self, host: str, port: int):
         self.client = weaviate.connect_to_local(host=host, port=port)
         self.collection_classes: Dict[str, Type[Collection]] = {}
@@ -36,8 +54,6 @@ class WeaviateEngine(Engine):
     def register_collection(self, collection_class: Type[Collection]) -> None:
         collection_name = collection_class.__name__
         self.collection_classes[collection_name] = collection_class
-
-        vector_field_names = []
 
         # Check if the class already exists in Weaviate
         if not self.client.collections.exists(collection_name):
@@ -47,9 +63,7 @@ class WeaviateEngine(Engine):
                 field,
             ) in collection_class.__dataclass_fields__.items():
                 if field_name != "id":
-                    if get_origin(field.type) == Vector:
-                        vector_field_names.append(field_name)
-                    else:
+                    if get_origin(field.type) != Vector:
                         data_type = (
                             DataType.TEXT
                             if field.type == str
@@ -58,9 +72,15 @@ class WeaviateEngine(Engine):
                         properties.append(
                             Property(name=field_name, data_type=data_type)
                         )
-            if len(vector_field_names) > 0:
+            if len(collection_class.get_vector_fields()) > 0:
                 vectorizer_config = [
-                    Configure.NamedVectors.none(n) for n in vector_field_names
+                    Configure.NamedVectors.none(
+                        name,
+                        vector_index_config=Configure.VectorIndex.hnsw(
+                            distance_metric=self.weaviate_dists[dist]
+                        ),
+                    )
+                    for name, _, dist in collection_class.get_vector_fields()
                 ]
             else:
                 vectorizer_config = None
