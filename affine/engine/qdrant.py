@@ -6,7 +6,14 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.exceptions import UnexpectedResponse
 
-from affine.collection import Collection, Filter, FilterSet, Similarity, Vector
+from affine.collection import (
+    Collection,
+    Filter,
+    FilterSet,
+    Metric,
+    Similarity,
+    Vector,
+)
 from affine.engine import Engine
 
 
@@ -15,6 +22,14 @@ def create_uuid() -> str:
 
 
 class QdrantEngine(Engine):
+
+    _RETURNS_NORMALIZED_FOR_COSINE = True
+
+    qdrant_dists = {
+        Metric.EUCLIDEAN: models.Distance.EUCLID,
+        Metric.COSINE: models.Distance.COSINE,
+    }
+
     def __init__(self, host: str, port: int):
         self.client = QdrantClient(host=host, port=port)
         self.created_collections = set()
@@ -28,14 +43,10 @@ class QdrantEngine(Engine):
 
         record.id = create_uuid()
 
-        vector_fields = [
-            f.name
-            for f in collection_class.__dataclass_fields__.values()
-            if get_origin(f.type) == Vector
-        ]
-        vector = (
-            getattr(record, vector_fields[0]).array if vector_fields else [0.0]
-        )  # Use a single-dimension vector if no vector field
+        vector = {
+            name: getattr(record, name).array
+            for name, _, _ in record.get_vector_fields()
+        }
 
         point = models.PointStruct(
             id=record.id,
@@ -53,15 +64,18 @@ class QdrantEngine(Engine):
             try:
                 self.client.get_collection(collection_name)
             except UnexpectedResponse:
-                vector_size = self._get_vector_size(collection_class)
-                if vector_size == 0:
-                    vector_size = 1  # Use a single-dimension vector for collections without vector fields
+                vf_info = collection_class.get_vector_fields()
+                vectors_config = {
+                    name: models.VectorParams(
+                        size=size,
+                        distance=self.qdrant_dists[distance],
+                    )
+                    for name, size, distance in vf_info
+                }
 
                 self.client.create_collection(
                     collection_name=collection_name,
-                    vectors_config=models.VectorParams(
-                        size=vector_size, distance=models.Distance.COSINE
-                    ),
+                    vectors_config=vectors_config,
                 )
             self.created_collections.add(collection_name)
 
@@ -90,6 +104,7 @@ class QdrantEngine(Engine):
         filter_set: FilterSet,
         similarity: Similarity | None = None,
         limit: int | None = None,
+        with_vectors: bool = False,
     ) -> list[Collection]:
         collection_name = filter_set.collection
         collection_class = self.collection_classes.get(collection_name)
@@ -101,14 +116,15 @@ class QdrantEngine(Engine):
         qdrant_filters = self._convert_filters_to_qdrant(filter_set.filters)
 
         search_params = models.SearchParams(hnsw_ef=128, exact=False)
-
         if similarity:
-            vector = similarity.get_list()
             results = self.client.search(
                 collection_name=collection_name,
-                query_vector=vector,
+                query_vector=models.NamedVector(
+                    name=similarity.field, vector=similarity.get_list()
+                ),
                 query_filter=qdrant_filters,
                 limit=limit,
+                with_vectors=with_vectors,
                 search_params=search_params,
             )
         else:
@@ -116,6 +132,7 @@ class QdrantEngine(Engine):
                 collection_name=collection_name,
                 scroll_filter=qdrant_filters,
                 limit=limit,
+                with_vectors=with_vectors,
             )[
                 0
             ]  # scroll returns a tuple (points, next_page_offset)
@@ -179,20 +196,14 @@ class QdrantEngine(Engine):
         point: Union[models.ScoredPoint, models.Record],
         collection_class: Type[Collection],
     ) -> Collection:
-        data = point.payload.copy() if point.payload else {}
-        for field_name, field in collection_class.__dataclass_fields__.items():
-            if get_origin(field.type) == Vector:
-                if field_name in data and isinstance(data[field_name], dict):
-                    # Convert the dictionary representation back to a Vector
-                    vector_data = data[field_name].get("array", [])
-                    data[field_name] = Vector(np.array(vector_data))
-                elif hasattr(point, "vector") and point.vector is not None:
-                    # If the vector is not in the payload, use the point's vector attribute
-                    data[field_name] = Vector(np.array(point.vector))
-                else:
-                    # If we can't find the vector data, initialize with an empty vector
-                    data[field_name] = None
-        ret = collection_class(**data)
+        kwargs = point.payload.copy() if point.payload else {}
+        for name, _, _ in collection_class.get_vector_fields():
+            if point.vector is None or name not in point.vector:
+                kwargs[name] = None
+            else:
+                kwargs[name] = Vector(np.array(point.vector[name]))
+
+        ret = collection_class(**kwargs)
         ret.id = point.id
         return ret
 

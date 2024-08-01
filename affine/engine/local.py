@@ -1,4 +1,5 @@
 import pickle
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import BinaryIO, Type
@@ -7,6 +8,7 @@ import numpy as np
 
 from affine.collection import Collection, Filter, FilterSet, Similarity
 from affine.engine import Engine
+from affine.query import QueryObject
 
 
 def apply_filter_to_record(filter_: Filter, record: Collection) -> bool:
@@ -79,9 +81,12 @@ class LocalEngine(Engine):
     def _query(
         self,
         filter_set: FilterSet,
+        with_vectors: bool = True,
         similarity: Similarity | None = None,
         limit: int | None = None,
     ) -> list[Collection]:
+        if not with_vectors:
+            warnings.warn("with_vectors=False has no effect in LocalEngine")
         records = self.records[filter_set.collection]
         records = apply_filters_to_records(filter_set.filters, records)
         if similarity is None:
@@ -115,3 +120,8 @@ class LocalEngine(Engine):
         self, collection: type, ids: list[int]
     ) -> list[Collection]:
         return [r for r in self.records[collection.__name__] if r.id in ids]
+
+    def query(
+        self, collection_class: Type[Collection], with_vectors: bool = True
+    ) -> QueryObject:
+        return super().query(collection_class, with_vectors=with_vectors)
