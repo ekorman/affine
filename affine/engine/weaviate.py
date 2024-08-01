@@ -12,9 +12,18 @@ from affine.engine import Engine
 
 
 def weaviate_object_to_collection_object(
-    obj: Object, collection_cls: type
+    obj: Object, collection_cls: Type[Collection]
 ) -> Collection:
-    ret = collection_cls(**obj.properties, **obj.vector)
+    kwargs = obj.properties.copy()
+
+    for vector_name, _, _ in collection_cls.get_vector_fields():
+        kwargs[vector_name] = (
+            Vector(obj.vector[vector_name])
+            if vector_name in obj.vector
+            else None
+        )
+
+    ret = collection_cls(**kwargs)
     ret.id = str(obj.uuid)
     return ret
 
@@ -99,6 +108,7 @@ class WeaviateEngine(Engine):
     def _query(
         self,
         filter_set: FilterSet,
+        with_vectors: bool = False,
         similarity: Similarity | None = None,
         limit: int | None = None,
     ) -> list[Collection]:
@@ -120,7 +130,7 @@ class WeaviateEngine(Engine):
             ).objects
         else:
             result = col.query.fetch_objects(
-                filters=where_filter, include_vector=True
+                filters=where_filter, include_vector=with_vectors
             ).objects
 
         return [
