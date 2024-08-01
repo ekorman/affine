@@ -6,21 +6,27 @@ from affine.query import QueryObject
 
 
 class Engine(ABC):
+
+    _RETURNS_NORMALIZED_FOR_COSINE = False
+
     @abstractmethod
     # TODO: add `return_vectors` as an argument here?
     def _query(
         self,
         filter_set: FilterSet,
+        with_vectors: bool = False,
         similarity: Similarity | None = None,
         limit: int | None = None,
     ) -> list[Collection]:
         pass
 
-    def query(self, collection_class: Type[Collection]) -> QueryObject:
-        return QueryObject(self, collection_class)
+    def query(
+        self, collection_class: Type[Collection], with_vectors: bool = False
+    ) -> QueryObject:
+        return QueryObject(self, collection_class, with_vectors=with_vectors)
 
     @abstractmethod
-    def insert(self, record: Collection) -> int:
+    def insert(self, record: Collection) -> int | str:
         pass
 
     @abstractmethod

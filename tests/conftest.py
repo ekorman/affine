@@ -1,13 +1,14 @@
 import pytest
 
-from affine.collection import Collection, Vector
-from affine.engine import Engine
+from affine.collection import Collection, Metric, Vector
+from affine.engine import Engine, LocalEngine
 
 
 class Person(Collection):
     name: str
     age: int
-    embedding: Vector[2]
+    embedding: Vector[2, Metric.EUCLIDEAN]
+    other_embedding: Vector[3, Metric.COSINE]
 
 
 class Product(Collection):
@@ -26,8 +27,18 @@ def ProductCollection():
 
 
 _data = [
-    Person(name="John", age=20, embedding=Vector([3.0, 0.0])),
-    Person(name="Jane", age=30, embedding=Vector([1.0, 2.0])),
+    Person(
+        name="John",
+        age=20,
+        embedding=Vector([3.0, 0.0]),
+        other_embedding=Vector([-1.0, 7.0, 0.0]),
+    ),
+    Person(
+        name="Jane",
+        age=30,
+        embedding=Vector([1.0, 2.0]),
+        other_embedding=Vector([10.7, 0.1, -5.0]),
+    ),
     Product(name="Apple", price=1.0),
 ]
 
@@ -53,6 +64,11 @@ def _test_engine(db: Engine):
     assert len(q2) == 1
     assert q2[0].name == "John"
 
+    # for non-local engine vector fields should be none
+    if not isinstance(db, LocalEngine):
+        assert q2[0].embedding is None
+        assert q2[0].other_embedding is None
+
     q3 = db.query(Person).filter(Person.age >= 25).all()
     assert len(q3) == 1
     assert q3[0].name == "Jane"
@@ -76,9 +92,7 @@ def _test_engine(db: Engine):
     assert len(q6) == 1
     assert q6[0].name == "Jane"
 
-    # q7 = db.query(Person.objects(embedding__topk=TopK(Vector([1.8, 2.3]), 1)))
     q7 = db.query(Person).similarity(Person.embedding == [1.8, 2.3]).limit(1)
-    # change to .similarity(Person.embedding == [1.8, 2.3])
     assert len(q7) == 1
     assert q7[0].name == "Jane"
 
@@ -95,6 +109,23 @@ def _test_engine(db: Engine):
     # check we can delete
     db.delete(q9[0])
     assert db.query(Product).all() == []
+
+    # for non-local engines check `with_vector`
+    if not isinstance(db, LocalEngine):
+        q10 = (
+            db.query(Person, with_vectors=True)
+            .filter(Person.name == "Jane")
+            .all()
+        )
+        assert len(q10) == 1
+        assert q10[0].embedding == Vector([1.0, 2.0])
+
+        if db._RETURNS_NORMALIZED_FOR_COSINE:
+            assert (
+                q10[0].other_embedding == Vector([10.7, 0.1, -5.0]).normalize()
+            )
+        else:
+            assert q10[0].other_embedding == Vector([10.7, 0.1, -5.0])
 
 
 @pytest.fixture

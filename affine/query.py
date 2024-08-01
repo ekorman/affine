@@ -7,9 +7,15 @@ if TYPE_CHECKING:
 
 
 class QueryObject:
-    def __init__(self, db: "Engine", collection_class: Type[Collection]):
+    def __init__(
+        self,
+        db: "Engine",
+        collection_class: Type[Collection],
+        with_vectors: bool,
+    ):
         self.db = db
         self.collection_class = collection_class
+        self.with_vectors = with_vectors
         self._filter_set = FilterSet(
             filters=[], collection=collection_class.__name__
         )
@@ -25,11 +31,14 @@ class QueryObject:
         return self
 
     def all(self) -> list[Collection]:
-        return self.db._query(self._filter_set)
+        return self.db._query(self._filter_set, with_vectors=self.with_vectors)
 
     def limit(self, n: int) -> list[Collection]:
         return self.db._query(
-            self._filter_set, limit=n, similarity=self._similarity
+            self._filter_set,
+            with_vectors=self.with_vectors,
+            limit=n,
+            similarity=self._similarity,
         )
 
     def similarity(self, similarity: Similarity) -> "QueryObject":
