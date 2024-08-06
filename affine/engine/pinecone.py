@@ -137,18 +137,20 @@ class PineconeEngine(Engine):
         index = self._get_index(collection.__name__)
         index.delete([id])
 
-    def insert(self, record: Collection) -> int | str:
+    def insert(self, record: Collection) -> str:
         index = self._get_index(record.__class__.__name__)
 
         vf_name, _, _ = self._get_collections_vector_field_name_dim_and_metric(
             record.__class__
         )
+        uid = create_uuid()
         index.upsert(
             [
                 PineconeVector(
-                    id=create_uuid(),
+                    id=uid,
                     values=getattr(record, vf_name).array.tolist(),
                     metadata=record.get_non_vector_dict(),
                 )
             ]
         )
+        return uid
