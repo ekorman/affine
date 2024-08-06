@@ -107,7 +107,7 @@ def _test_engine(db: Engine):
     assert db.query(Product).get_by_id(q9[0].id).name == "Apple"
 
     # check we can delete
-    db.delete(q9[0])
+    db.delete(record=q9[0])
     assert db.query(Product).all() == []
 
     # for non-local engines check `with_vector`
