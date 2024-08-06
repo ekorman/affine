@@ -11,4 +11,15 @@ try:
 except ModuleNotFoundError:
     pass
 
-__all__ = ["Engine", "LocalEngine", "QdrantEngine", "WeaviateEngine"]
+try:
+    from .pinecone import PineconeEngine
+except ModuleNotFoundError:
+    pass
+
+__all__ = [
+    "Engine",
+    "LocalEngine",
+    "QdrantEngine",
+    "WeaviateEngine",
+    "PineconeEngine",
+]
