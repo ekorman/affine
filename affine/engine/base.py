@@ -30,8 +30,32 @@ class Engine(ABC):
         pass
 
     @abstractmethod
-    def delete(self, record: Collection) -> None:
+    def _delete_by_id(self, collection: Type[Collection], id: str) -> None:
         pass
+
+    def delete(
+        self,
+        *,
+        record: Collection | str | None = None,
+        collection: Type[Collection] | None = None,
+        id: str | None = None,
+    ) -> None:
+        if bool(record is None) == bool(collection is None and id is None):
+            raise ValueError(
+                "Either record or collection and id must be provided"
+            )
+        if record is not None:
+            if collection is not None or id is not None:
+                raise ValueError(
+                    "Either record or collection and id must be provided"
+                )
+            self._delete_by_id(record.__class__, record.id)
+        else:
+            if collection is None or id is None:
+                raise ValueError(
+                    "Either record or collection and id must be provided"
+                )
+            self._delete_by_id(collection, id)
 
     @abstractmethod
     def get_elements_by_ids(

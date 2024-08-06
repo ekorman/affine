@@ -158,11 +158,11 @@ class WeaviateEngine(Engine):
             for obj in result
         ]
 
-    def delete(self, record: Collection) -> None:
+    def _delete_by_id(self, collection: Type[Collection], id: str) -> None:
         col, _ = self.get_weaviate_collection_and_affine_collection_class(
-            record.__class__.__name__
+            collection.__name__
         )
-        col.data.delete_by_id(record.id)
+        col.data.delete_by_id(id)
 
     def get_elements_by_ids(
         self, collection: Type[Collection], ids: List[str]

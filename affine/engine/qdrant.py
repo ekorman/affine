@@ -142,13 +142,13 @@ class QdrantEngine(Engine):
             for point in results
         ]
 
-    def delete(self, record: Collection) -> None:
-        collection_name = record.__class__.__name__
-        self.register_collection(record.__class__)
-        self._ensure_collection_exists(record.__class__)
+    def _delete_by_id(self, collection: Type[Collection], id: str) -> None:
+        collection_name = collection.__name__
+        self.register_collection(collection)
+        self._ensure_collection_exists(collection)
         self.client.delete(
             collection_name=collection_name,
-            points_selector=models.PointIdsList(points=[record.id]),
+            points_selector=models.PointIdsList(points=[id]),
         )
 
     def _convert_filters_to_qdrant(
