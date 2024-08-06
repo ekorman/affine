@@ -195,3 +195,11 @@ class Collection(metaclass=MetaCollection):
             for f in fields(cls)
             if get_origin(f.type) == Vector
         ]
+
+    def get_non_vector_dict(self) -> dict[str, Any]:
+        """Returns a dictionary of all metadata (i.e. all fields and values that are not vectors)"""
+        return {
+            f.name: getattr(self, f.name)
+            for f in fields(self)
+            if get_origin(f.type) != Vector
+        }
