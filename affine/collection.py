@@ -177,6 +177,14 @@ class Collection(metaclass=MetaCollection):
                     )
         self.id = None
 
+    @property
+    def id(self) -> str | None:
+        return self._id
+
+    @id.setter
+    def id(self, value: str):
+        self._id = value
+
     @classmethod
     def get_vector_fields(
         cls: Type["Collection"],
