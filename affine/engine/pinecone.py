@@ -29,8 +29,27 @@ def _convert_filters_to_pinecone(
 
 
 class PineconeEngine(Engine):
-    def __init__(self, *, api_key: str = None, spec: ServerlessSpec | PodSpec):
+    def __init__(
+        self, api_key: str = None, spec: ServerlessSpec | PodSpec | None = None
+    ):
+        """Engien for interacting with Pinecone.
+
+        Parameters
+        ----------
+        api_key
+            The Pinecone API key. If not provided, it will be read from the
+            environment variable PINECONE_API_KEY.
+        spec
+            The PodSpec or ServerlessSpec object. If not provided, a `ServerlessSpec`
+            will be created from the environment variables PINECONE_CLOUD and
+            PINECONE_REGION.
+        """
         # allow getting api_key from env variable
+        if spec is None:
+            spec = ServerlessSpec(
+                cloud=os.getenv("PINECONE_CLOUD"),
+                region=os.getenv("PINECONE_REGION"),
+            )
         api_key = api_key or os.getenv("PINECONE_API_KEY")
         self.client = Pinecone(api_key=api_key)
         self.spec = spec
@@ -51,7 +70,9 @@ class PineconeEngine(Engine):
         return name, dim, metric
 
     def _convert_pinecone_to_collection(
-        self, pc_record: ScoredVector, collection_class: Type[Collection]
+        self,
+        pc_record: ScoredVector | PineconeVector,
+        collection_class: Type[Collection],
     ) -> Collection:
         vf_name, _, _ = self._get_collections_vector_field_name_dim_and_metric(
             collection_class
@@ -97,11 +118,15 @@ class PineconeEngine(Engine):
         return self.client.Index(collection_name.lower())
 
     def get_elements_by_ids(
-        self, collection: Type, ids: list[int]
+        self, collection: Type[Collection], ids: list[int]
     ) -> list[Collection]:
-        pass
+        index = self._get_index(collection.__name__)
 
-    # pinecone queries require a vector
+        return [
+            self._convert_pinecone_to_collection(r, collection)
+            for r in index.fetch(ids).vectors.values()
+        ]
+
     def _query(
         self,
         filter_set: FilterSet,
@@ -121,7 +146,7 @@ class PineconeEngine(Engine):
         ret = index.query(
             top_k=limit,
             vector=vector,
-            filters=filter_,
+            filter=filter_,
             include_metadata=True,
             include_values=with_vectors,
         ).matches
