@@ -106,14 +106,14 @@ class LocalEngine(Engine):
     def register_collection(self, collection_class: Type[Collection]) -> None:
         pass
 
-    def delete(self, record: Collection) -> None:
-        collection_name = record.__class__.__name__
+    def _delete_by_id(self, collection: Type[Collection], id: str) -> None:
+        collection_name = collection.__name__
         for r in self.records[collection_name]:
-            if r.id == record.id:
+            if r.id == id:
                 self.records[collection_name].remove(r)
                 return
         raise ValueError(
-            f"Record with id {record.id} not found in collection {collection_name}"
+            f"Record with id {id} not found in collection {collection_name}"
         )
 
     def get_elements_by_ids(
