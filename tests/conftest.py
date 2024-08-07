@@ -77,6 +77,10 @@ def _test_engine(db: Engine):
     assert len(q4) == 1
     assert q4[0].name == "John"
 
+    assert len(db.query(Person).filter(Person.age < 20).all()) == 0
+
+    assert len(db.query(Person).filter(Person.age > 30).all()) == 0
+
     q5 = (
         db.query(Person)
         .filter((Person.age <= 25) & (Person.name == "Jane"))

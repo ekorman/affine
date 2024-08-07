@@ -14,7 +14,7 @@ class Metric(str, Enum):
 N = TypeVar("N", bound=int)
 M = TypeVar("M", bound=Metric)
 
-Operation = Literal["eq", "lte", "gte", "topk"]
+Operation = Literal["eq", "lte", "gte", "lt", "gt"]
 
 
 class Vector(Generic[N, M]):
