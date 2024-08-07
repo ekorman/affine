@@ -114,7 +114,7 @@ class Attribute:
     def __gt__(self, value: object) -> Filter:
         return Filter(
             field=self.name,
-            operation="gte",
+            operation="gt",
             value=value,
             collection=self.collection,
         )
@@ -130,7 +130,7 @@ class Attribute:
     def __lt__(self, value: object) -> Filter:
         return Filter(
             field=self.name,
-            operation="lte",
+            operation="lt",
             value=value,
             collection=self.collection,
         )
