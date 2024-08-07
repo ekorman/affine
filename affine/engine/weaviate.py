@@ -167,7 +167,7 @@ class WeaviateEngine(Engine):
             filter_set.collection
         )
 
-        where_filter = self._build_where_filter(filter_set.filters)
+        where_filter = _build_where_filter(filter_set.filters)
         if similarity:
             result = col.query.near_vector(
                 similarity.get_list(),
