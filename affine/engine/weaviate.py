@@ -23,6 +23,34 @@ from affine.collection import (
 from affine.engine import Engine
 
 
+def _build_where_filter(filters: List[Filter]) -> _FilterValue:
+    if len(filters) == 0:
+        return None
+    where_filters = []
+
+    filter_op_to_weaviate_filter_method = {
+        "eq": "equal",
+        "gte": "greater_or_equal",
+        "lte": "less_or_equal",
+        "gt": "greater_than",
+        "lt": "less_than",
+    }
+
+    for filter_ in filters:
+        weaviate_filter = query.Filter.by_property(filter_.field)
+        weaviate_filter = getattr(
+            weaviate_filter,
+            filter_op_to_weaviate_filter_method[filter_.operation],
+        )(filter_.value)
+
+        where_filters.append(weaviate_filter)
+
+    ret = where_filters[0]
+    for f in where_filters[1:]:
+        ret = ret & f
+    return ret
+
+
 def weaviate_object_to_collection_object(
     obj: Object, collection_cls: Type[Collection]
 ) -> Collection:
@@ -180,28 +208,3 @@ class WeaviateEngine(Engine):
             )
             for id_ in ids
         ]
-
-    def _build_where_filter(self, filters: List[Filter]) -> _FilterValue:
-        if len(filters) == 0:
-            return None
-        where_filters = []
-        for filter_ in filters:
-            weaviate_filter = query.Filter.by_property(filter_.field)
-            if filter_.operation == "eq":
-                weaviate_filter = weaviate_filter.equal(filter_.value)
-            elif filter_.operation == "gte":
-                weaviate_filter = weaviate_filter.greater_or_equal(
-                    filter_.value
-                )
-            elif filter_.operation == "lte":
-                weaviate_filter = weaviate_filter.less_or_equal(filter_.value)
-            else:
-                raise ValueError(
-                    f"Unsupported filter operation: {filter_.operation}"
-                )
-            where_filters.append(weaviate_filter)
-
-        ret = where_filters[0]
-        for f in where_filters[1:]:
-            ret = ret & f
-        return ret
