@@ -21,6 +21,36 @@ def create_uuid() -> str:
     return str(uuid.uuid4())
 
 
+def _convert_filters_to_qdrant(
+    filters: List[Filter],
+) -> Optional[models.Filter]:
+    """Converts filters to Qdrant's format."""
+    if not filters:
+        return None
+
+    qdrant_conditions = []
+    for f in filters:
+        if f.operation == "eq":
+            if f.field == "id":
+                raise ValueError("Filtering by id is not supported")
+            else:
+                qdrant_conditions.append(
+                    models.FieldCondition(
+                        key=f.field, match=models.MatchValue(value=f.value)
+                    )
+                )
+        elif f.operation in ["gte", "lte", "gt", "lt"]:
+            qdrant_conditions.append(
+                models.FieldCondition(
+                    key=f.field, range=models.Range(**{f.operation: f.value})
+                )
+            )
+        else:
+            raise ValueError(f"Unsupported filter operation: {f.operation}")
+
+    return models.Filter(must=qdrant_conditions) if qdrant_conditions else None
+
+
 class QdrantEngine(Engine):
 
     _RETURNS_NORMALIZED_FOR_COSINE = True
@@ -35,7 +65,7 @@ class QdrantEngine(Engine):
         self.created_collections = set()
         self.collection_classes: Dict[str, Type[Collection]] = {}
 
-    def insert(self, record: Collection) -> int:
+    def insert(self, record: Collection) -> str:
         collection_class = type(record)
         collection_name = collection_class.__name__
         self.register_collection(collection_class)
@@ -113,7 +143,7 @@ class QdrantEngine(Engine):
 
         self._ensure_collection_exists(collection_class)
 
-        qdrant_filters = self._convert_filters_to_qdrant(filter_set.filters)
+        qdrant_filters = _convert_filters_to_qdrant(filter_set.filters)
 
         search_params = models.SearchParams(hnsw_ef=128, exact=False)
         if similarity:
@@ -149,46 +179,6 @@ class QdrantEngine(Engine):
         self.client.delete(
             collection_name=collection_name,
             points_selector=models.PointIdsList(points=[id]),
-        )
-
-    def _convert_filters_to_qdrant(
-        self, filters: List[Filter]
-    ) -> Optional[models.Filter]:
-        if not filters:
-            return None
-
-        qdrant_conditions = []
-        for f in filters:
-            if f.operation == "eq":
-                if f.field == "id":
-                    raise ValueError("Filtering by id is not supported")
-                else:
-                    qdrant_conditions.append(
-                        models.FieldCondition(
-                            key=f.field, match=models.MatchValue(value=f.value)
-                        )
-                    )
-            elif f.operation == "gte":
-                qdrant_conditions.append(
-                    models.FieldCondition(
-                        key=f.field, range=models.Range(gte=f.value)
-                    )
-                )
-            elif f.operation == "lte":
-                qdrant_conditions.append(
-                    models.FieldCondition(
-                        key=f.field, range=models.Range(lte=f.value)
-                    )
-                )
-            else:
-                raise ValueError(
-                    f"Unsupported filter operation: {f.operation}"
-                )
-
-        return (
-            models.Filter(must=qdrant_conditions)
-            if qdrant_conditions
-            else None
         )
 
     def _convert_qdrant_point_to_collection(

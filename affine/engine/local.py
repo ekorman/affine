@@ -19,6 +19,10 @@ def apply_filter_to_record(filter_: Filter, record: Collection) -> bool:
         return field >= filter_.value
     elif filter_.operation == "lte":
         return field <= filter_.value
+    elif filter_.operation == "gt":
+        return field > filter_.value
+    elif filter_.operation == "lt":
+        return field < filter_.value
     else:
         raise ValueError(f"Operation {filter_.operation} not supported")
 

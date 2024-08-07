@@ -136,6 +136,8 @@ class PineconeEngine(Engine):
     ) -> list[Collection]:
         filter_ = _convert_filters_to_pinecone(filter_set.filters)
         index = self._get_index(filter_set.collection)
+        if limit is None:
+            raise ValueError("Pinecone queries require a limit")
         if similarity is None:
             raise ValueError(
                 "Pinecone queries require a vector in every query"
