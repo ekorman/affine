@@ -78,3 +78,13 @@ def test_pinecone_engine(
     )
     assert len(q2) == 1
     assert q2[0].a == "str2"
+
+    assert (
+        len(
+            db.query(C, with_vectors=True)
+            .filter(C.b < 3)
+            .similarity(C.embedding == [1.1, 0.2])
+            .limit(1)
+        )
+        == 0
+    )
