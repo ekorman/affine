@@ -39,16 +39,10 @@ def _convert_filters_to_qdrant(
                         key=f.field, match=models.MatchValue(value=f.value)
                     )
                 )
-        elif f.operation == "gte":
+        elif f.operation in ["gte", "lte", "gt", "lt"]:
             qdrant_conditions.append(
                 models.FieldCondition(
-                    key=f.field, range=models.Range(gte=f.value)
-                )
-            )
-        elif f.operation == "lte":
-            qdrant_conditions.append(
-                models.FieldCondition(
-                    key=f.field, range=models.Range(lte=f.value)
+                    key=f.field, range=models.Range(**{f.operation: f.value})
                 )
             )
         else:
