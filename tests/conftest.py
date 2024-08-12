@@ -149,7 +149,7 @@ def _test_similarity(db: Engine):
 
     # query each vector and check the result
     for i, record in enumerate(records):
-        q = db.query(C).similarity(C.b == record.b).limit(3)
+        q = db.query(C, with_vectors=True).similarity(C.b == record.b).limit(3)
         assert len(q) == 3
         for j in [-1, 0, 1]:
             idx = i + j

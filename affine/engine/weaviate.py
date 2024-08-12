@@ -173,7 +173,7 @@ class WeaviateEngine(Engine):
                 similarity.get_list(),
                 target_vector=similarity.field,
                 filters=where_filter,
-                include_vector=True,
+                include_vector=with_vectors,
                 limit=limit,
             ).objects
         else:
