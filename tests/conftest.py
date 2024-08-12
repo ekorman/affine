@@ -135,3 +135,28 @@ def _test_engine(db: Engine):
 @pytest.fixture
 def generic_test_engine():
     return _test_engine
+
+
+def _test_similarity(db: Engine):
+    class C(Collection):
+        a: int
+        b: Vector[100, Metric.EUCLIDEAN]
+
+    # generate 100 vectors to query against
+    records = [C(a=i, b=Vector([i] * 100)) for i in range(100)]
+    for record in records:
+        db.insert(record)
+
+    # query each vector and check the result
+    for i, record in enumerate(records):
+        q = db.query(C).similarity(C.b == record.b).limit(3)
+        assert len(q) == 3
+        for j in [-1, 0, 1]:
+            idx = i + j
+            if idx >= 0 and idx < 100:
+                assert records[i + j] in q
+
+
+@pytest.fixture
+def generic_test_similarity():
+    return _test_similarity

@@ -39,6 +39,10 @@ def test_weaviate_engine(db: WeaviateEngine, generic_test_engine):
     generic_test_engine(db)
 
 
+def test_similarity(db: WeaviateEngine, generic_test_similarity):
+    generic_test_similarity(db)
+
+
 def test_unregistered_collection(db: WeaviateEngine):
     class UnregisteredCollection(Collection):
         name: str

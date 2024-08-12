@@ -10,6 +10,11 @@ def test_local_engine(generic_test_engine):
     generic_test_engine(db)
 
 
+def test_similarity(generic_test_similarity):
+    db = LocalEngine()
+    generic_test_similarity(db)
+
+
 def test_local_engine_save_load(
     PersonCollection: Type[Collection],
     ProductCollection: Type[Collection],
