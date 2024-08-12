@@ -88,3 +88,7 @@ def test_pinecone_engine(
         )
         == 0
     )
+
+
+def test_similarity(db: PineconeEngine, generic_test_similarity, created_ids):
+    created_ids.extend(generic_test_similarity(db))

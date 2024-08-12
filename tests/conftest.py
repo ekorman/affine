@@ -137,24 +137,34 @@ def generic_test_engine():
     return _test_engine
 
 
-def _test_similarity(db: Engine):
-    class C(Collection):
-        a: int
+def _test_similarity(db: Engine) -> list:
+    class TestCol(Collection):
+        a: float
         b: Vector[100, Metric.EUCLIDEAN]
 
     # generate 100 vectors to query against
-    records = [C(a=i, b=Vector([i] * 100)) for i in range(100)]
+    records = [
+        TestCol(a=float(i), b=Vector([float(i + 1)] * 100)) for i in range(100)
+    ]
+    db.register_collection(TestCol)
+    created_ids = []
     for record in records:
-        db.insert(record)
+        created_ids.append(db.insert(record))
 
     # query each vector and check the result
     for i, record in enumerate(records):
-        q = db.query(C, with_vectors=True).similarity(C.b == record.b).limit(3)
+        q = (
+            db.query(TestCol, with_vectors=True)
+            .similarity(TestCol.b == record.b)
+            .limit(3)
+        )
         assert len(q) == 3
         for j in [-1, 0, 1]:
             idx = i + j
             if idx >= 0 and idx < 100:
                 assert records[i + j] in q
+
+    return created_ids
 
 
 @pytest.fixture

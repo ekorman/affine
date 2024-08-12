@@ -5,7 +5,14 @@ from typing import Any, Dict, Type
 from pinecone import Index, Pinecone, PodSpec, ScoredVector, ServerlessSpec
 from pinecone import Vector as PineconeVector
 
-from affine.collection import Collection, Filter, FilterSet, Metric, Similarity
+from affine.collection import (
+    Collection,
+    Filter,
+    FilterSet,
+    Metric,
+    Similarity,
+    Vector,
+)
 from affine.engine import Engine
 
 
@@ -79,7 +86,7 @@ class PineconeEngine(Engine):
         )
         kwargs = pc_record.metadata.copy()
         if pc_record.values:
-            kwargs[vf_name] = pc_record.values
+            kwargs[vf_name] = Vector(pc_record.values)
         else:
             kwargs[vf_name] = None
 
