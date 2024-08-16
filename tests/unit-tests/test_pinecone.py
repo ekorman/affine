@@ -150,4 +150,4 @@ def test_query(mock_get_index, engine):
 
     assert len(results) == 1
     assert results[0].id == "1"
-    assert results[0].vector == [1.0] * 128
+    assert results[0].vector == Vector([1.0] * 128)
