@@ -1,5 +1,6 @@
 import pickle
 import warnings
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 from typing import BinaryIO, Type
@@ -42,20 +43,103 @@ def apply_filters_to_records(
     return ret
 
 
-def filter_by_similarity(
-    similarity: Similarity, limit: int, records: list[Collection]
-) -> list[Collection]:
-    vectors = np.stack([getattr(r, similarity.field).array for r in records])
-    query_vector = similarity.get_array()
-    distances = np.linalg.norm(vectors - query_vector, axis=1)
-    topk_indices = distances.argsort()[:limit]
-    return [records[i] for i in topk_indices]
+def build_data_matrix(
+    field_name: str, records: list[Collection]
+) -> np.ndarray:
+    return np.stack([getattr(r, field_name).array for r in records])
+
+
+# def filter_by_similarity(
+#     similarity: Similarity, limit: int, records: list[Collection]
+# ) -> list[Collection]:
+#     vectors = build_data_matrix(similarity.field, records)
+#     query_vector = similarity.get_array()
+#     distances = np.linalg.norm(vectors - query_vector, axis=1)
+#     topk_indices = distances.argsort()[:limit]
+#     return [records[i] for i in topk_indices]
+
+
+class LocalBackend(ABC):
+    @abstractmethod
+    def create_index(self, data: np.ndarray) -> None:
+        pass
+
+    @abstractmethod
+    def query(self, q: np.ndarray, k: int) -> list[int]:
+        pass
+
+    # @abstractmethod
+    # def save(self, fp):
+    #     pass
+
+    # @abstractmethod
+    # def load(self, fp):
+    #     pass
+
+
+class NumPyBackend(LocalBackend):
+    def create_index(self, data: np.ndarray) -> None:
+        self._index = data
+
+    def query(self, q: np.ndarray, k: int) -> list[int]:
+        return np.linalg.norm(self._index - q, axis=1).argsort()[:k].tolist()
+
+
+class KDTreeBackend(LocalBackend):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    def create_index(self, data: np.ndarray) -> None:
+        try:
+            from sklearn.neighbors import KDTree
+        except ModuleNotFoundError:
+            raise RuntimeError(
+                "KDTree backend requires scikit-learn to be installed"
+            )
+        self.tree = KDTree(data, **self.kwargs)
+
+    def query(self, q: np.ndarray, k: int) -> list[int]:
+        # q should be shape (N,)
+        assert len(q.shape) == 1
+        q = q.reshape(1, -1)
+        return self.tree.query(q, k)[1][0].tolist()
+
+
+class PyNNDescentBackend(LocalBackend):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    def create_index(self, data: np.ndarray) -> None:
+        try:
+            from pynndescent import NNDescent
+        except ModuleNotFoundError:
+            raise RuntimeError(
+                "PyNNDescentBackend backend requires pynndescent to be installed"
+            )
+        self.index = NNDescent(data, **self.kwargs)
+
+    def query(self, q: np.ndarray, k: int) -> list[int]:
+        if len(q.shape) == 1:
+            q = q.reshape(1, -1)
+        idxs, _ = self.index.query(q, k)
+        return idxs[0].tolist()
+
+
+class AnnoyBackend(LocalBackend):
+    pass
+
+
+class FAISSBackend(LocalBackend):
+    pass
 
 
 class LocalEngine(Engine):
-    def __init__(self) -> None:  # maybe add option to the init for ANN algo
+    def __init__(
+        self, backend: LocalBackend | None = None
+    ) -> None:  # maybe add option to the init for ANN algo
         self.records: dict[str, list[Collection]] = defaultdict(list)
         self.build_collection_id_counter()
+        self.backend = backend or NumPyBackend()
 
     def build_collection_id_counter(self):
         # maybe pickle this too on save?
@@ -98,7 +182,11 @@ class LocalEngine(Engine):
                 return records
             return records[:limit]
 
-        return filter_by_similarity(similarity, limit, records)
+        data = build_data_matrix(similarity.field, records)
+        q = similarity.get_array()
+        self.backend.create_index(data)
+        neighbors = self.backend.query(q, limit)
+        return [records[i] for i in neighbors]
 
     def insert(self, record: Collection) -> int:
         record.id = self.collection_id_counter[record.__class__.__name__] + 1

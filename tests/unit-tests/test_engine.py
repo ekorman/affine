@@ -3,6 +3,7 @@ from typing import Type
 
 from affine.collection import Collection
 from affine.engine import LocalEngine
+from affine.engine.local import KDTreeBackend, PyNNDescentBackend
 
 
 def test_local_engine(generic_test_engine):
@@ -10,8 +11,19 @@ def test_local_engine(generic_test_engine):
     generic_test_engine(db)
 
 
-def test_similarity(generic_test_similarity):
+def test_similarity_numpy_backend(generic_test_similarity):
     db = LocalEngine()
+    generic_test_similarity(db)
+
+
+# this test is slow
+def test_similarity_kdtree_backend(generic_test_similarity):
+    db = LocalEngine(backend=KDTreeBackend())
+    generic_test_similarity(db)
+
+
+def test_similarity_pynndescent_backend(generic_test_similarity):
+    db = LocalEngine(backend=PyNNDescentBackend())
     generic_test_similarity(db)
 
 
