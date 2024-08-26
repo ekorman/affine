@@ -133,7 +133,26 @@ class PyNNDescentBackend(LocalBackend):
 
 
 class AnnoyBackend(LocalBackend):
-    pass
+    def __init__(self, n_trees: int, n_jobs: int = -1):
+        self.n_trees = n_trees
+        self.n_jobs = n_jobs
+
+    def create_index(self, data: np.ndarray, metric: Metric) -> None:
+        try:
+            from annoy import AnnoyIndex
+        except ModuleNotFoundError:
+            raise RuntimeError(
+                "AnnoyBackend backend requires annoy to be installed"
+            )
+
+        annoy_metric = "angular" if metric == Metric.COSINE else "euclidean"
+        self.index = AnnoyIndex(data.shape[1], metric=annoy_metric)
+        for i, v in enumerate(data):
+            self.index.add_item(i, v)
+        self.index.build(self.n_trees, self.n_jobs)
+
+    def query(self, q: np.ndarray, k: int) -> list[int]:
+        return self.index.get_nns_by_vector(q, k)
 
 
 class FAISSBackend(LocalBackend):
