@@ -174,13 +174,17 @@ class FAISSBackend(LocalBackend):
                 "FAISSBackend backend requires FAISS to be installed. See "
                 "https://github.com/facebookresearch/faiss/blob/main/INSTALL.md for installation instructions."
             )
+        self.metric = metric
         if metric == Metric.COSINE:
             data = data / np.linalg.norm(data, axis=1).reshape(-1, 1)
         self.index = faiss.index_factory(data.shape[1], self.index_factory_str)
         self.index.add(data)
 
     def query(self, q: np.ndarray, k: int) -> list[int]:
-        _, idxs = self.index.search(q.reshape(1, -1) / np.linalg.norm(q), k)
+        q = q.reshape(1, -1)
+        if self.metric == Metric.COSINE:
+            q = q / np.linalg.norm(q)
+        _, idxs = self.index.search(q, k)
         assert idxs.shape[0] == 1
         return idxs[0].tolist()
 
