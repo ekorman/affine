@@ -32,8 +32,14 @@ def test_qdrant_engine(db: QdrantEngine, generic_test_engine):
     generic_test_engine(db)
 
 
-def test_similarity(db: QdrantEngine, generic_test_similarity):
-    generic_test_similarity(db)
+def test_euclidean_similarity(
+    db: QdrantEngine, generic_test_euclidean_similarity
+):
+    generic_test_euclidean_similarity(db)
+
+
+def test_cosine_similarity(db: QdrantEngine, generic_test_cosine_similarity):
+    generic_test_cosine_similarity(db)
 
 
 def test_auto_creation(
