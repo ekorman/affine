@@ -156,7 +156,33 @@ class AnnoyBackend(LocalBackend):
 
 
 class FAISSBackend(LocalBackend):
-    pass
+    def __init__(self, index_factory_str: str):
+        """
+        Parameters
+        ----------
+        index_factory_str : str
+            A string that specifies the index type to be created.
+            See https://github.com/facebookresearch/faiss/wiki/The-index-factory for details.
+        """
+        self.index_factory_str = index_factory_str
+
+    def create_index(self, data: np.ndarray, metric: Metric) -> None:
+        try:
+            import faiss
+        except ModuleNotFoundError:
+            raise RuntimeError(
+                "FAISSBackend backend requires FAISS to be installed. See "
+                "https://github.com/facebookresearch/faiss/blob/main/INSTALL.md for installation instructions."
+            )
+        if metric == Metric.COSINE:
+            data = data / np.linalg.norm(data, axis=1).reshape(-1, 1)
+        self.index = faiss.index_factory(data.shape[1], self.index_factory_str)
+        self.index.add(data)
+
+    def query(self, q: np.ndarray, k: int) -> list[int]:
+        _, idxs = self.index.search(q.reshape(1, -1) / np.linalg.norm(q), k)
+        assert idxs.shape[0] == 1
+        return idxs[0].tolist()
 
 
 class LocalEngine(Engine):

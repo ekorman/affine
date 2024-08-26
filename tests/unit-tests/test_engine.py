@@ -5,7 +5,12 @@ import pytest
 
 from affine.collection import Collection
 from affine.engine import LocalEngine
-from affine.engine.local import AnnoyBackend, KDTreeBackend, PyNNDescentBackend
+from affine.engine.local import (
+    AnnoyBackend,
+    FAISSBackend,
+    KDTreeBackend,
+    PyNNDescentBackend,
+)
 
 
 def test_local_engine(generic_test_engine):
@@ -60,6 +65,18 @@ def test_euclidean_similarity_annoy_backend(
 
 def test_cosine_similarity_annoy_backend(generic_test_cosine_similarity):
     db = LocalEngine(backend=AnnoyBackend(n_trees=10))
+    generic_test_cosine_similarity(db)
+
+
+def test_euclidean_similarity_faiss_backend(
+    generic_test_euclidean_similarity,
+):
+    db = LocalEngine(backend=FAISSBackend("Flat"))
+    generic_test_euclidean_similarity(db)
+
+
+def test_cosine_similarity_faiss_backend(generic_test_cosine_similarity):
+    db = LocalEngine(backend=FAISSBackend("Flat"))
     generic_test_cosine_similarity(db)
 
 

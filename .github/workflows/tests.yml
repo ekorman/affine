@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install ".[test,pinecone]"
-      - run: pip install scikit-learn pynndescent annoy
+      - run: pip install scikit-learn pynndescent annoy faiss-cpu
       - run: coverage run --source=affine -m pytest -v --durations 0 tests/unit-tests
       - run: coverage report
       - name: upload coverage report as artifact
