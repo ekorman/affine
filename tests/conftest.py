@@ -49,6 +49,8 @@ def data():
 
 
 def _test_engine(db: Engine):
+    db.register_collection(Person)
+    db.register_collection(Product)
     assert len(db.query(Person).all()) == 0
 
     for rec in _data:
@@ -137,7 +139,7 @@ def generic_test_engine():
     return _test_engine
 
 
-def _test_similarity(db: Engine) -> list:
+def _test_euclidean_similarity(db: Engine) -> list:
     class TestCol(Collection):
         a: float
         b: Vector[100, Metric.EUCLIDEAN]
@@ -167,6 +169,49 @@ def _test_similarity(db: Engine) -> list:
     return created_ids
 
 
+def _test_cosine_similarity(db: Engine):
+    # create vectors like [1, 1, 1, ...], [2, 2, 2, ...],
+    # and [1 + eps, 1, ...] and make sure cosine is working
+    class TestColCosine(Collection):
+        a: float
+        b: Vector[100, Metric.COSINE]
+
+    db.register_collection(TestColCosine)
+
+    created_ids = []
+    for i in range(50):
+        created_ids.append(
+            db.insert(
+                TestColCosine(a=float(2 * i), b=Vector([float(i + 1)] * 100))
+            )
+        )
+        created_ids.append(
+            db.insert(
+                TestColCosine(
+                    a=float(2 * i + 1),
+                    b=Vector([float(i + 1) + 1] + [float(i + 1)] * 99),
+                )
+            )
+        )
+
+    for i in range(50):
+        q = (
+            db.query(TestColCosine, with_vectors=True)
+            .similarity(TestColCosine.b == Vector([float(i + 1)] * 100))
+            .limit(3)
+        )
+        assert len(q) == 3
+        # all the vectors should have even index
+        assert all([int(r.a) % 2 == 0 for r in q])
+
+    return created_ids
+
+
 @pytest.fixture
-def generic_test_similarity():
-    return _test_similarity
+def generic_test_euclidean_similarity():
+    return _test_euclidean_similarity
+
+
+@pytest.fixture
+def generic_test_cosine_similarity():
+    return _test_cosine_similarity

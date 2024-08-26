@@ -7,7 +7,7 @@ from typing import BinaryIO, Type
 
 import numpy as np
 
-from affine.collection import Collection, Filter, FilterSet, Similarity
+from affine.collection import Collection, Filter, FilterSet, Metric, Similarity
 from affine.engine import Engine
 from affine.query import QueryObject
 
@@ -49,19 +49,9 @@ def build_data_matrix(
     return np.stack([getattr(r, field_name).array for r in records])
 
 
-# def filter_by_similarity(
-#     similarity: Similarity, limit: int, records: list[Collection]
-# ) -> list[Collection]:
-#     vectors = build_data_matrix(similarity.field, records)
-#     query_vector = similarity.get_array()
-#     distances = np.linalg.norm(vectors - query_vector, axis=1)
-#     topk_indices = distances.argsort()[:limit]
-#     return [records[i] for i in topk_indices]
-
-
 class LocalBackend(ABC):
     @abstractmethod
-    def create_index(self, data: np.ndarray) -> None:
+    def create_index(self, data: np.ndarray, metric: Metric) -> None:
         pass
 
     @abstractmethod
@@ -78,10 +68,20 @@ class LocalBackend(ABC):
 
 
 class NumPyBackend(LocalBackend):
-    def create_index(self, data: np.ndarray) -> None:
+    def create_index(self, data: np.ndarray, metric: Metric) -> None:
+        self.metric = metric
         self._index = data
 
     def query(self, q: np.ndarray, k: int) -> list[int]:
+        if self.metric == Metric.COSINE:
+            return np.argsort(
+                -np.dot(self._index, q)
+                / (
+                    np.linalg.norm(
+                        self._index, axis=1
+                    )  # * np.linalg.norm(q) don't need to divide by this if not returning distances
+                )
+            )[:k].tolist()
         return np.linalg.norm(self._index - q, axis=1).argsort()[:k].tolist()
 
 
@@ -89,19 +89,26 @@ class KDTreeBackend(LocalBackend):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
-    def create_index(self, data: np.ndarray) -> None:
+    def create_index(self, data: np.ndarray, metric: Metric) -> None:
         try:
             from sklearn.neighbors import KDTree
         except ModuleNotFoundError:
             raise RuntimeError(
                 "KDTree backend requires scikit-learn to be installed"
             )
+        self._metric = metric
+        if metric == Metric.COSINE:
+            data = data / np.linalg.norm(data, axis=1).reshape(-1, 1)
+
         self.tree = KDTree(data, **self.kwargs)
 
     def query(self, q: np.ndarray, k: int) -> list[int]:
         # q should be shape (N,)
         assert len(q.shape) == 1
         q = q.reshape(1, -1)
+
+        if self._metric == Metric.COSINE:
+            q = q / np.linalg.norm(q)
         return self.tree.query(q, k)[1][0].tolist()
 
 
@@ -109,14 +116,14 @@ class PyNNDescentBackend(LocalBackend):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
-    def create_index(self, data: np.ndarray) -> None:
+    def create_index(self, data: np.ndarray, metric: Metric) -> None:
         try:
             from pynndescent import NNDescent
         except ModuleNotFoundError:
             raise RuntimeError(
                 "PyNNDescentBackend backend requires pynndescent to be installed"
             )
-        self.index = NNDescent(data, **self.kwargs)
+        self.index = NNDescent(data, metric=metric.value, **self.kwargs)
 
     def query(self, q: np.ndarray, k: int) -> list[int]:
         if len(q.shape) == 1:
@@ -140,6 +147,10 @@ class LocalEngine(Engine):
         self.records: dict[str, list[Collection]] = defaultdict(list)
         self.build_collection_id_counter()
         self.backend = backend or NumPyBackend()
+        # maps collection class name and then field name to metric
+        self.collection_name_to_field_to_metric: dict[
+            str, dict[str, Metric]
+        ] = {}
 
     def build_collection_id_counter(self):
         # maybe pickle this too on save?
@@ -184,7 +195,10 @@ class LocalEngine(Engine):
 
         data = build_data_matrix(similarity.field, records)
         q = similarity.get_array()
-        self.backend.create_index(data)
+        metric = self.collection_name_to_field_to_metric[
+            filter_set.collection
+        ][similarity.field]
+        self.backend.create_index(data, metric)
         neighbors = self.backend.query(q, limit)
         return [records[i] for i in neighbors]
 
@@ -196,7 +210,10 @@ class LocalEngine(Engine):
         return record.id
 
     def register_collection(self, collection_class: Type[Collection]) -> None:
-        pass
+        self.collection_name_to_field_to_metric[collection_class.__name__] = {
+            field_name: metric
+            for field_name, _, metric in collection_class.get_vector_fields()
+        }
 
     def _delete_by_id(self, collection: Type[Collection], id: str) -> None:
         collection_name = collection.__name__
