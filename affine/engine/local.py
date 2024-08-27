@@ -58,6 +58,7 @@ class LocalBackend(ABC):
     def query(self, q: np.ndarray, k: int) -> list[int]:
         pass
 
+    # TODO: implement save and load
     # @abstractmethod
     # def save(self, fp):
     #     pass
