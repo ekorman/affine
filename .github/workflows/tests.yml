@@ -22,6 +22,7 @@ jobs:
         with:
           path: ${{ env.COVERAGE_FILE }}
           name: ${{ env.COVERAGE_FILE }}
+          include-hidden-files: true
 
   functional-test-qdrant:
     runs-on: ubuntu-latest
@@ -46,6 +47,7 @@ jobs:
         with:
           path: ${{ env.COVERAGE_FILE }}
           name: ${{ env.COVERAGE_FILE }}
+          include-hidden-files: true
 
   functional-test-weaviate:
     runs-on: ubuntu-latest
@@ -70,6 +72,7 @@ jobs:
         with:
           path: ${{ env.COVERAGE_FILE }}
           name: ${{ env.COVERAGE_FILE }}
+          include-hidden-files: true
   combine-coverage-report:
     needs: [unit-tests, functional-test-qdrant, functional-test-weaviate]
     runs-on: ubuntu-latest
