@@ -1,13 +1,83 @@
 import io
 from typing import Type
 
+import pytest
+
 from affine.collection import Collection
 from affine.engine import LocalEngine
+from affine.engine.local import (
+    AnnoyBackend,
+    FAISSBackend,
+    KDTreeBackend,
+    PyNNDescentBackend,
+)
 
 
 def test_local_engine(generic_test_engine):
     db = LocalEngine()
     generic_test_engine(db)
+
+
+def test_euclidean_similarity_numpy_backend(generic_test_euclidean_similarity):
+    db = LocalEngine()
+    generic_test_euclidean_similarity(db)
+
+
+def test_cosine_similarity_numpy_backend(generic_test_cosine_similarity):
+    db = LocalEngine()
+    generic_test_cosine_similarity(db)
+
+
+def test_euclidean_similarity_kdtree_backend(
+    generic_test_euclidean_similarity,
+):
+    db = LocalEngine(backend=KDTreeBackend())
+    generic_test_euclidean_similarity(db)
+
+
+def test_cosine_similarity_kdtree_backend(generic_test_cosine_similarity):
+    db = LocalEngine(backend=KDTreeBackend())
+    generic_test_cosine_similarity(db)
+
+
+# skip this test because it is really slow
+@pytest.mark.skip
+def test_euclidean_similarity_pynndescent_backend(
+    generic_test_euclidean_similarity,
+):
+    db = LocalEngine(backend=PyNNDescentBackend())
+    generic_test_euclidean_similarity(db)
+
+
+# skip this test because it is really slow
+@pytest.mark.skip
+def test_cosine_similarity_pynndescent_backend(generic_test_cosine_similarity):
+    db = LocalEngine(backend=PyNNDescentBackend())
+    generic_test_cosine_similarity(db)
+
+
+def test_euclidean_similarity_annoy_backend(
+    generic_test_euclidean_similarity,
+):
+    db = LocalEngine(backend=AnnoyBackend(n_trees=10))
+    generic_test_euclidean_similarity(db)
+
+
+def test_cosine_similarity_annoy_backend(generic_test_cosine_similarity):
+    db = LocalEngine(backend=AnnoyBackend(n_trees=10))
+    generic_test_cosine_similarity(db)
+
+
+def test_euclidean_similarity_faiss_backend(
+    generic_test_euclidean_similarity,
+):
+    db = LocalEngine(backend=FAISSBackend("Flat"))
+    generic_test_euclidean_similarity(db)
+
+
+def test_cosine_similarity_faiss_backend(generic_test_cosine_similarity):
+    db = LocalEngine(backend=FAISSBackend("Flat"))
+    generic_test_cosine_similarity(db)
 
 
 def test_local_engine_save_load(
