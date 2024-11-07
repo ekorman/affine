@@ -110,7 +110,7 @@ def _test_engine(db: Engine):
     assert q9[0].name == "Apple"
 
     # check we can query by id
-    assert db.query(Product).get_by_id(q9[0].id).name == "Apple"
+    assert db.get_element_by_id(Product, q9[0].id).name == "Apple"
 
     # check we can delete
     db.delete(record=q9[0])
