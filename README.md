@@ -18,6 +18,8 @@ For local mode, the following approximate nearest neighbor libraries are support
 - scikit-learn KDTree
 - naive/NumPy
 
+Note: this project is very similar to [vectordb-orm](https://github.com/piercefreeman/vectordb-orm), which looks to be no longer maintained.
+
 ## Installation
 
 ```bash
