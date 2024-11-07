@@ -68,13 +68,11 @@ A fundamental notion of _affine_ are `Engine` classes. All such classes conform 
 
 The currently supported vector databases are:
 
-| Database | Class                        | Constructor arguments                                      | Notes |
-| -------- | ---------------------------- | ---------------------------------------------------------- | ----- |
-| Qdrant   | `affine.engine.QdrantEngine` | `host: str` hostname to use<br><br>`port: int` port to use | -     |
-
-| Weaviate | `affine.engine.WeaviateEngine` | `host: str` hostname to use<br><br>`port: int` port to use | - |
-
-| Pinecone | `affine.engine.PineconeEngine` | `api_key: str                                              | None` pinecone API key. if not provided, it will be read from the environment variable PINECONE_API_KEY.<br><br>`spec: ServerlessSpec | PodSpec | None`the PodSpec or ServerlessSpec object. If not provided, a`ServerlessSpec` will be created from the environment variables PINECONE_CLOUD and PINECONE_REGION. | the Pinecone engine has the restriction that every collection must contain exactly one vector attribute. |
+| Database | Class                          | Constructor arguments                                                                                                                                                                                                                                                                                                                          | Notes                                                                                                    |
+| -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Qdrant   | `affine.engine.QdrantEngine`   | `host: str` hostname to use<br><br>`port: int` port to use                                                                                                                                                                                                                                                                                     | -                                                                                                        |
+| Weaviate | `affine.engine.WeaviateEngine` | `host: str` hostname to use<br><br>`port: int` port to use                                                                                                                                                                                                                                                                                     | -                                                                                                        |
+| Pinecone | `affine.engine.PineconeEngine` | `api_key: Union[str, None]` pinecone API key. if not provided, it will be read from the environment variable PINECONE_API_KEY.<br><br>`spec: Union[ServerlessSpec, PodSpec, None]` the PodSpec or ServerlessSpec object. If not provided, a`ServerlessSpec` will be created from the environment variables PINECONE_CLOUD and PINECONE_REGION. | the Pinecone engine has the restriction that every collection must contain exactly one vector attribute. |
 
 ### Approximate Nearest Neighbor Libraries
 
