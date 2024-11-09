@@ -23,10 +23,10 @@ Note: this project is very similar to [vectordb-orm](https://github.com/piercefr
 ## Installation
 
 ```bash
-pip install affine
-# or `pip install affine[qdrant]` for qdrant support
-# `pip install affine[weaviate]` for weaviate support
-# `pip install affine[pinecone]` for pinecone support
+pip install affine-vectordb
+# or `pip install "affine-vectordb[qdrant]"` for qdrant support
+# `pip install "affine-vectordb[weaviate]"` for weaviate support
+# `pip install "affine-vectordb[pinecone]"` for pinecone support
 ```
 
 ## Basic Usage
